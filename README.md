@@ -2,7 +2,7 @@ Optimization with minuit2
 ======
 
 A wrapper built around the
-[Minuit2](https://project-mathlibs.web.cern.ch/project-mathlibs/sw/Minuit2/html/index.html)
+[Minuit2](https://root.cern.ch/root/html/MATH_MINUIT2_Index.html)
 optimization library, which is included in the package.
 
 Installation and Usage
