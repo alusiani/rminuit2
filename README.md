@@ -1,9 +1,9 @@
 Optimization with minuit2
 ======
 
-A wrapper built around the Minuit2 optimization library
-(https://project-mathlibs.web.cern.ch/project-mathlibs/sw/Minuit2/html/index.html),
-which is included in the package.
+A wrapper built around the
+[Minuit2](https://project-mathlibs.web.cern.ch/project-mathlibs/sw/Minuit2/html/index.html)
+optimization library, which is included in the package.
 
 Installation and Usage
 -----
