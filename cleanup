@@ -1,0 +1,7 @@
+#! /bin/sh
+#
+# cleanup
+#
+
+/bin/rm -rf inst
+

@@ -1,0 +1,6 @@
+#! /bin/sh
+#
+# configure Minuit2
+#
+cd src/minuit2-alu
+./configure --prefix="/"
