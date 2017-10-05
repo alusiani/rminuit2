@@ -98,6 +98,12 @@ rminuit2 <- function(fn, par, err=NULL, lower=NULL, upper=NULL, fix=NULL, opt="h
 
   if (is.null(names(par))) names(par) = paste0("p", seq(1, length(par)))
   par = setNames(as.numeric(par), names(par))
+
+  if (length(err) != length(par)) stop("vector 'err' must have the same length as 'par'")
+  if (length(lower) != length(par)) stop("vector 'lower' must have the same length as 'par'")
+  if (length(upper) != length(par)) stop("vector 'upper' must have the same length as 'par'")
+  if (length(fix) != length(par)) stop("vector 'fix' must have the same length as 'par'")
+
   err = as.numeric(err)
   lower = as.numeric(lower)
   upper = as.numeric(upper)
@@ -112,8 +118,6 @@ rminuit2 <- function(fn, par, err=NULL, lower=NULL, upper=NULL, fix=NULL, opt="h
 
   names(rc$par) = names(par)
   names(rc$err) = names(par)
-  colnames(rc$cov) = names(par)
-  rownames(rc$cov) = names(par)
 
   if (!is.null(rc$err_minos_pos)) {
     names(rc$err_minos_pos) = names(par)
@@ -121,6 +125,17 @@ rminuit2 <- function(fn, par, err=NULL, lower=NULL, upper=NULL, fix=NULL, opt="h
   if (!is.null(rc$err_minos_neg)) {
     names(rc$err_minos_neg) = names(par)
   }
+
+  ##--- integrate returned covariance, only for non-fixed parameters
+  npar_fixed = length(par) - nrow(rc$cov)
+  
+  rc$cov = cbind(rc$cov, matrix(0, nrow(rc$cov), npar_fixed))
+  rc$cov = rbind(rc$cov, matrix(0, npar_fixed, length(par)))
+  cov.reorder = c( which(fix==0), which(fix!=0) )
+  rc$cov[cov.reorder, cov.reorder] = rc$cov
+
+  colnames(rc$cov) = names(par)
+  rownames(rc$cov) = names(par)
 
   if (!rc$IsValid) warning("migrad failed")
   if (!rc$IsValidFirstInvocation) warning("migrad first invocation failed, use strategy 2")

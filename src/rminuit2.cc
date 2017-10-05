@@ -79,21 +79,21 @@ class ExtFcn : public FCNBase {
 
 public:
   ExtFcn(Rcpp::EvalBase* const ev_fn) : fExtFcn(ev_fn) {}
-  
+
   virtual ~ExtFcn() {}
-  
+
   virtual double operator()(const std::vector<double>& par) const {
     const Rcpp::NumericVector rc( fExtFcn->eval(Rcpp::wrap(par)) );
-#if 0    
+#if 0
     if (rc.size() != 1) {
       //+++ throw exception, function returned vector of length rc.size()
     }
 #endif
     return rc.size() == 1 ? rc[0] : NA_REAL;
   }
-  
+
   virtual double Up() const {return 0.5;}
-  
+
 private:
   Rcpp::EvalBase* const fExtFcn;
 };
@@ -135,8 +135,6 @@ Rcpp::List rminuit2_cpp(
   //--- create function to be minimized with Minuit2
   ExtFcn fFCN(ev_fn);
 
-  // int npar(par.size());
-
   auto dpar( as< std::vector<double> >(par) );
   auto derr( as< std::vector<double> >(err) );
   auto dlower( as< std::vector<double> >(lower) );
@@ -144,22 +142,27 @@ Rcpp::List rminuit2_cpp(
   auto ifix( as< std::vector<int> >(fix) );
   auto sopt( as< std::string >(opt(0)) );
   int imaxcalls( maxcalls(0) );
-  
+
   // auto par_names( as< std::vector<std::string> >(par.names()) );
   auto par_names = as< Rcpp::StringVector >(par.names());
-  
+
   //--- Minuit2 parameters
   MnUserParameters upar;
-  
+
   //--- init upar names, start values, estimated errors, lower and upper limits
-  for(auto i=0; i<par.size(); i++) {
+  size_t npar_nonfixed(par.size());
+
+  for(unsigned int i=0; i<par.size(); i++) {
     upar.Add(as< const char * >(par_names(i)), dpar[i], derr[i] );
     if (dlower[i] != R_NegInf) upar.SetLowerLimit(i, dlower[i]);
     if (dupper[i] != R_PosInf) upar.SetUpperLimit(i, dupper[i]);
-    // if (dlower[i] != R_NegInf) Rcout << "lower limit par " << i << " " << dlower[i] << std::endl;    
-    // if (dupper[i] != R_PosInf) Rcout << "upper limit par " << i << " " << dupper[i] << std::endl;    
-    if (ifix[i] != 0) upar.Fix(i);
-    // if (ifix[i] != 0) Rcout << "fixed par " << i << std::endl;    
+    // if (dlower[i] != R_NegInf) Rcout << "lower limit par " << i << " " << dlower[i] << std::endl;
+    // if (dupper[i] != R_PosInf) Rcout << "upper limit par " << i << " " << dupper[i] << std::endl;
+    if (ifix[i] != 0) {
+      upar.Fix(i);
+      npar_nonfixed--;
+    }
+    // if (ifix[i] != 0) Rcout << "fixed par " << i << std::endl;
   }
 
   FunctionMinimum* fminp(0);
@@ -202,37 +205,42 @@ Rcpp::List rminuit2_cpp(
     }
 
   }
-  
+
   FunctionMinimum& min(*fminp);
-  
+
   if (contained('h', sopt)) {
     //--- run hesse to compute Hessian and errors
     MnHesse hesse;
     hesse(fFCN, min);
   }
-  
+
   // Rcout << "UserParameters " << min.UserParameters() << std::endl;
   // Rcout << "UserCovariance " << min.UserCovariance() << std::endl;
-  
+
   std::vector<double> minos_pos_err;
   std::vector<double> minos_neg_err;
   if (contained('m', sopt)) {
     MnMinos Minos(fFCN, min);
-    for(auto i=0; i<par.size(); i++) {
-      minos_pos_err.push_back(Minos(i).second);
-      minos_neg_err.push_back(Minos(i).first);
+    for(unsigned int i=0; i<par.size(); i++) {
+      if (ifix[i]) {
+        minos_pos_err.push_back(0);
+        minos_neg_err.push_back(0);
+      } else {
+        minos_pos_err.push_back(Minos(i).second);
+        minos_neg_err.push_back(Minos(i).first);
+      }
     }
   }
-  
+
   // Rcout << "minimum: " << min << std::endl;
 
-  Rcpp::NumericMatrix par_cov(par.size(), par.size());
-  for(auto i=0; i<par.size(); i++) {
-    for(auto j=0; j<par.size(); j++) {
+  Rcpp::NumericMatrix par_cov(npar_nonfixed, npar_nonfixed);
+  for(unsigned int i=0; i<npar_nonfixed; i++) {
+    for(unsigned int j=0; j<npar_nonfixed; j++) {
       par_cov(i, j) = min.UserCovariance()(i, j);
     }
   }
-  
+
   //--- return list
   Rcpp::List rc;
 
