@@ -111,6 +111,9 @@ rminuit2 <- function(fn, par, err=NULL, lower=NULL, upper=NULL, fix=NULL, opt="h
   envir = as.environment(envir)
   maxcalls = as.integer(maxcalls)
 
+  ##--- fix errors to zero for fixed parameters
+  err[which(fix!=0)] = 0
+
   ##--- Call main C++ routine
   rc <- .Call('_rminuit2_rminuit2_cpp', PACKAGE = 'rminuit2',
               fn, par, err, lower, upper,
