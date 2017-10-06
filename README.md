@@ -7,13 +7,13 @@ minimization library, which is included in this package.
 Minuit2 is a robust numerical algorithm focused on
 multidimensional minimization for High Energy Physics (HEP) fitting and maximum
 likelihood estimation. Under the assumption that the minimized
-function is the negative logarithm of a likelihood (mll) of measurements of
+function is the negative logarithm of a likelihood (MLL) of measurements of
 a Physics model, Minuit2 computes estimates of the optimized parameters'
 uncertainties and covariance matrix by numerically computing the
-Hesse matrix of the second derivatives of the mll.
+Hesse matrix of the second derivatives of the MLL.
 Minuit2 can also compute the  optimized parameters' asymmetric
 uncertainties by scanning the function minimum to find how much a
-parameter must change to increase the mll by 1/2.
+parameter must change to increase the MLL by 1/2.
 
 Minuit2 is a C++ implementation of the Fortran program Minuit, written
 by Frank James. It is integrated with the HEP package
