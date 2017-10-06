@@ -1,16 +1,33 @@
-## rminuit2, optimization with minuit2
+## rminuit2, numerical multidimensional function minimization with Minuit2
 
-A wrapper built around the
+R package with an interface for using the
 [Minuit2](https://root.cern.ch/root/html/MATH_MINUIT2_Index.html)
-optimization library, which is included in the package.
+minimization library, which is included in this package.
+
+Minuit2 is a robust numerical algorithm focused on
+multidimensional minimization for High Energy Physics (HEP) fitting and maximum
+likelihood estimation. Under the assumption that the minimized
+function is the negative logarithm of a likelihood (mll) of measurements of
+a Physics model, Minuit2 computes estimates of the optimized parameters'
+uncertainties and covariance matrix by numerically computing the
+Hesse matrix of the second derivatives of the mll.
+Minuit2 can also compute the  optimized parameters' asymmetric
+uncertainties by scanning the function minimum to find how much a
+parameter must change to increase the mll by 1/2.
+
+Minuit2 is a C++ implementation of the Fortran program Minuit, written
+by Frank James. It is integrated with the HEP package
+[Root](https://root.cern.ch/).
 
 ### Installation and Usage
 
-Download the package tarball and build using R commands, or alternatively instally directly from Github using Hadley Wickham's [devtools](https://github.com/hadley/devtools) package. The R command is:
+Download the package tarball and build using R commands, or alternatively instally directly from Github using Hadley Wickham's [devtools](https://github.com/hadley/devtools) package. The R commands are:
+
 ```
 library(devtools)
 install_github("alusiani/rminuit2")
 ```
+
 For usage, please refer to the documentation.
 
 ### Dependencies
@@ -23,4 +40,4 @@ Alberto Lusiani
 
 ### License
 
-GPL (>= 2)
+LGPL (>= 2)
