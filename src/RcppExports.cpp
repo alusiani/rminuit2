@@ -6,8 +6,8 @@
 using namespace Rcpp;
 
 // rminuit2_cpp
-Rcpp::List rminuit2_cpp(SEXP fn, Rcpp::NumericVector par, Rcpp::NumericVector err, Rcpp::NumericVector lower, Rcpp::NumericVector upper, Rcpp::IntegerVector fix, Rcpp::StringVector opt, SEXP envir, Rcpp::IntegerVector maxcalls);
-RcppExport SEXP _rminuit2_rminuit2_cpp(SEXP fnSEXP, SEXP parSEXP, SEXP errSEXP, SEXP lowerSEXP, SEXP upperSEXP, SEXP fixSEXP, SEXP optSEXP, SEXP envirSEXP, SEXP maxcallsSEXP) {
+Rcpp::List rminuit2_cpp(SEXP fn, Rcpp::NumericVector par, Rcpp::NumericVector err, Rcpp::NumericVector lower, Rcpp::NumericVector upper, Rcpp::IntegerVector fix, Rcpp::StringVector opt, SEXP envir, Rcpp::IntegerVector maxcalls, Rcpp::NumericVector nsigma);
+RcppExport SEXP _rminuit2_rminuit2_cpp(SEXP fnSEXP, SEXP parSEXP, SEXP errSEXP, SEXP lowerSEXP, SEXP upperSEXP, SEXP fixSEXP, SEXP optSEXP, SEXP envirSEXP, SEXP maxcallsSEXP, SEXP nsigmaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -20,13 +20,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::StringVector >::type opt(optSEXP);
     Rcpp::traits::input_parameter< SEXP >::type envir(envirSEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type maxcalls(maxcallsSEXP);
-    rcpp_result_gen = Rcpp::wrap(rminuit2_cpp(fn, par, err, lower, upper, fix, opt, envir, maxcalls));
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type nsigma(nsigmaSEXP);
+    rcpp_result_gen = Rcpp::wrap(rminuit2_cpp(fn, par, err, lower, upper, fix, opt, envir, maxcalls, nsigma));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_rminuit2_rminuit2_cpp", (DL_FUNC) &_rminuit2_rminuit2_cpp, 9},
+    {"_rminuit2_rminuit2_cpp", (DL_FUNC) &_rminuit2_rminuit2_cpp, 10},
     {NULL, NULL, 0}
 };
 

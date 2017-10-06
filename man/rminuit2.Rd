@@ -5,7 +5,7 @@
 \title{Function Minimization with Minuit2}
 \usage{
 rminuit2(fn, par, err = NULL, lower = NULL, upper = NULL, fix = NULL,
-  opt = "h", envir = NULL, ..., maxcalls = 0L)
+  opt = "h", envir = NULL, ..., maxcalls = 0L, nsigma = 1)
 }
 \arguments{
 \item{fn}{The function to be minimized, with first argument a numeric
@@ -45,6 +45,8 @@ arguments should be passed to them using the \code{...} construct instead.}
 should be passed to them using the \code{...} construct instead.}
 
 \item{maxcalls}{integer, maximum number of calls, defaults to \code{0} (no limit).}
+
+\item{nsigma}{numeric, number of standard deviations for Minos errors}
 }
 \value{
 A list with the following components:

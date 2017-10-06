@@ -75,15 +75,18 @@ inline bool contained(char cmp, const std::string& str) {
 // mimimizer function that executes function to minimize
 //
 
-class ExtFcn : public FCNBase {
+class FcnRcppAdapter : public FCNBase {
 
 public:
-  ExtFcn(Rcpp::EvalBase* const ev_fn) : fExtFcn(ev_fn) {}
+  FcnRcppAdapter(Rcpp::EvalBase* const ev_fn, double up = 0.5) :
+    fFunc(ev_fn),
+    fUp (up)
+  {}
 
-  virtual ~ExtFcn() {}
+  ~FcnRcppAdapter() {}
 
-  virtual double operator()(const std::vector<double>& par) const {
-    const Rcpp::NumericVector rc( fExtFcn->eval(Rcpp::wrap(par)) );
+  double operator()(const std::vector<double>& par) const {
+    const Rcpp::NumericVector rc( fFunc->eval(Rcpp::wrap(par)) );
 #if 0
     if (rc.size() != 1) {
       //+++ throw exception, function returned vector of length rc.size()
@@ -92,10 +95,25 @@ public:
     return rc.size() == 1 ? rc[0] : NA_REAL;
   }
 
-  virtual double Up() const {return 0.5;}
+#if 0
+  double operator()(const double* par) const {
+    const Rcpp::NumericVector rc( fFunc->eval(Rcpp::wrap(par)) );
+#if 0
+    if (rc.size() != 1) {
+      //+++ throw exception, function returned vector of length rc.size()
+    }
+#endif
+    return rc.size() == 1 ? rc[0] : NA_REAL;
+  }
+#endif
+
+  double Up() const {return fUp;}
+
+  void SetErrorDef(double up) { fUp = up; }
 
 private:
-  Rcpp::EvalBase* const fExtFcn;
+  Rcpp::EvalBase* const fFunc;
+  double fUp;
 };
 
 //
@@ -112,7 +130,8 @@ Rcpp::List rminuit2_cpp(
   Rcpp::IntegerVector fix,
   Rcpp::StringVector opt,
   SEXP envir,
-  Rcpp::IntegerVector maxcalls
+  Rcpp::IntegerVector maxcalls,
+  Rcpp::NumericVector nsigma
   )
 {
   //--- Pointer to abstract base classes
@@ -133,7 +152,7 @@ Rcpp::List rminuit2_cpp(
   }
 
   //--- create function to be minimized with Minuit2
-  ExtFcn fFCN(ev_fn);
+  FcnRcppAdapter fFCN(ev_fn);
 
   auto dpar( as< std::vector<double> >(par) );
   auto derr( as< std::vector<double> >(err) );
@@ -142,6 +161,7 @@ Rcpp::List rminuit2_cpp(
   auto ifix( as< std::vector<int> >(fix) );
   auto sopt( as< std::string >(opt(0)) );
   int imaxcalls( maxcalls(0) );
+  double dnsigma( nsigma[0] );
 
   // auto par_names( as< std::vector<std::string> >(par.names()) );
   auto par_names = as< Rcpp::StringVector >(par.names());
@@ -221,6 +241,7 @@ Rcpp::List rminuit2_cpp(
   std::vector<double> minos_neg_err;
   if (contained('m', sopt)) {
     MnMinos Minos(fFCN, min);
+    fFCN.SetErrorDef(dnsigma * dnsigma);
     for(unsigned int i=0; i<par.size(); i++) {
       if (ifix[i]) {
         minos_pos_err.push_back(0);

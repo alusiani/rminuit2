@@ -31,6 +31,7 @@
 #' @param ... construct. If the functions are implemented in R, extra arguments
 #'   should be passed to them using the \code{...} construct instead.
 #' @param maxcalls integer, maximum number of calls, defaults to \code{0} (no limit).
+#' @param nsigma numeric, number of standard deviations for Minos errors
 #'
 #' @return A list with the following components:
 #'  \itemize{
@@ -67,7 +68,7 @@
 #' @export
 #'
 rminuit2 <- function(fn, par, err=NULL, lower=NULL, upper=NULL, fix=NULL, opt="h",
-  envir=NULL, ..., maxcalls=0L) {
+  envir=NULL, ..., maxcalls=0L, nsigma=1) {
 
   ##--- Initialize environment if NULL
   ## if (!hasArg(envir)) envir <- new.env()
@@ -96,20 +97,33 @@ rminuit2 <- function(fn, par, err=NULL, lower=NULL, upper=NULL, fix=NULL, opt="h
     maxcalls = maxcalls[1]
   }
 
-  if (is.null(names(par))) names(par) = paste0("p", seq(1, length(par)))
+  if (length(nsigma) < 1) {
+    maxcalls = 1
+  } else if (length(maxcalls) > 1) {
+    nsigma = nsigma[1]
+  }
+
+  if (is.null(names(par))) names(par) = paste0("p", seq(1, npar))
   par = setNames(as.numeric(par), names(par))
 
-  if (length(err) != length(par)) stop("vector 'err' must have the same length as 'par'")
-  if (length(lower) != length(par)) stop("vector 'lower' must have the same length as 'par'")
-  if (length(upper) != length(par)) stop("vector 'upper' must have the same length as 'par'")
-  if (length(fix) != length(par)) stop("vector 'fix' must have the same length as 'par'")
+  if (length(err) != npar) stop("vector 'err' must have the same length as 'par'")
+  if (length(lower) != npar) stop("vector 'lower' must have the same length as 'par'")
+  if (length(upper) != npar) stop("vector 'upper' must have the same length as 'par'")
+  if (length(fix) != npar) stop("vector 'fix' must have the same length as 'par'")
 
   err = as.numeric(err)
+  err = ifelse(is.na(err), 0.1, err)
   lower = as.numeric(lower)
+  lower = ifelse(is.na(lower), -Inf, lower)
   upper = as.numeric(upper)
+  upper = ifelse(is.na(upper), Inf, upper)
   fix = as.integer(fix)
+  fix = ifelse(is.na(fix), 0L, fix)
   envir = as.environment(envir)
   maxcalls = as.integer(maxcalls)
+  maxcalls = ifelse(is.na(maxcalls), 0L, maxcalls)
+  nsigma = as.numeric(nsigma)
+  nsigma = ifelse(is.na(nsigma), 0, abs(nsigma))
 
   ##--- fix errors to zero for fixed parameters
   err[which(fix!=0)] = 0
@@ -117,7 +131,7 @@ rminuit2 <- function(fn, par, err=NULL, lower=NULL, upper=NULL, fix=NULL, opt="h
   ##--- Call main C++ routine
   rc <- .Call('_rminuit2_rminuit2_cpp', PACKAGE = 'rminuit2',
               fn, par, err, lower, upper,
-              fix, opt, envir, maxcalls)
+              fix, opt, envir, maxcalls, nsigma)
 
   names(rc$par) = names(par)
   names(rc$err) = names(par)
@@ -129,11 +143,13 @@ rminuit2 <- function(fn, par, err=NULL, lower=NULL, upper=NULL, fix=NULL, opt="h
     names(rc$err_minos_neg) = names(par)
   }
 
-  ##--- integrate returned covariance, only for non-fixed parameters
-  npar_fixed = length(par) - nrow(rc$cov)
-  
+  ##
+  ## returned covariance is restricted to just the non-fixed parameters
+  ## add zero elements for all fixed parameters
+  ##
+  npar_fixed = npar - nrow(rc$cov)
   rc$cov = cbind(rc$cov, matrix(0, nrow(rc$cov), npar_fixed))
-  rc$cov = rbind(rc$cov, matrix(0, npar_fixed, length(par)))
+  rc$cov = rbind(rc$cov, matrix(0, npar_fixed, npar))
   cov.reorder = c( which(fix==0), which(fix!=0) )
   rc$cov[cov.reorder, cov.reorder] = rc$cov
 
@@ -146,11 +162,11 @@ rminuit2 <- function(fn, par, err=NULL, lower=NULL, upper=NULL, fix=NULL, opt="h
   if (!rc$HasValidCovariance) warning("covariance matrix is not valid")
   if (!rc$HasAccurateCovar) warning("covariance matrix is not accurate")
   if (!rc$HasPosDefCovar) warning("covariance matrix non positive definite")
-  if (rc$HasMadePosDefCovar) warning("HasMadePosDefCovar")
-  if (rc$HesseFailed) warning("HesseFailed")
+  if (rc$HasMadePosDefCovar) warning("covariance matrix was adjusted to be positive definite")
+  if (rc$HesseFailed) warning("Hesse procedure to get covariance numerically failed")
   if (!rc$HasCovariance) warning("no covariance matrix computed")
   if (rc$IsAboveMaxEdm) warning("IsAboveMaxEdm")
-  if (rc$HasReachedCallLimit) warning("HasReachedCallLimit")
+  if (rc$HasReachedCallLimit) warning("maximum number of calls limit reached")
 
   return(rc)
 }
