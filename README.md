@@ -28,6 +28,11 @@ library(devtools)
 install_github("alusiani/rminuit2")
 ```
 
+The package has been tested so far only on Linux, and is not prepared
+for MS Windows. Adaptation to MS Windows is not trivial since Minuit2
+is presently compiled with autotool/automake Makefiles.
+Contributors are welcome for adaptations for OSs other than Linux.
+
 For usage, please refer to the documentation.
 
 ### Dependencies
