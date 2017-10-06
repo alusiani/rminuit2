@@ -6,7 +6,9 @@ minimization library, which is included in this package.
 
 Minuit2 is a robust numerical algorithm focused on
 multidimensional minimization for High Energy Physics (HEP) fitting and maximum
-likelihood estimation. Under the assumption that the minimized
+likelihood estimation. It effectively finds the local minimum of
+multi-parameter functions, without requiring any derivative of the
+function. Under the assumption that the minimized
 function is the negative logarithm of a likelihood (MLL) of measurements of
 a Physics model, Minuit2 computes estimates of the optimized parameters'
 uncertainties and covariance matrix by numerically computing the
