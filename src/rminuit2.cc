@@ -260,6 +260,7 @@ Rcpp::List rminuit2_cpp(
   }
 
   rc["fval"] = min.Fval();
+  rc["Edm"] = min.Edm();
 
   rc["IsValid"] = min.IsValid();
   rc["IsValidFirstInvocation"] = !migrad_first_failed;
