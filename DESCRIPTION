@@ -2,7 +2,7 @@ Package: rminuit2
 Title: Function Minimization with minuit2
 Version: 0.0.1
 Authors@R: person("Alberto", "Lusiani", email = "alusiani@gmail.com", role = c("aut", "cre"))
-Description: R-project wrapper built around the Minuit2 function minimization library (https://project-mathlibs.web.cern.ch/project-mathlibs/sw/Minuit2/html/index.html), which is included in the package.
+Description: R interface for Minuit2 function minimization library (https://root.cern.ch/root/html/MATH_MINUIT2_Index.html), which is included in the package.
 Depends: R (>= 3.4.1)
 License: LGPL (>= 2)
 Encoding: UTF-8
