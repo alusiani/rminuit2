@@ -60,6 +60,8 @@ A list with the following components:
    \item{\code{err_minos_neg}:}{Minos-estimated negative parameters' uncertainties (if requested).}
    \item{\code{err_minos_pos_valid}:}{boolean vector, TRUE if Minos positive uncertainties are valid.}
    \item{\code{err_minos_neg_valid}:}{boolean vector, TRUE if Minos negative uncertainties are valid.}
+   \item{\code{allOK}:}{TRUE if the fit converged and the parameters and their covariance are OK}
+   \item{\code{MinosErrorsValid}:}{TRUE if the MINOS errors are all valid}
    \item{\code{IsValid}:}{TRUE if the fit minimization converged}
    \item{\code{IsValidFirstInvocation}:}{TRUE if Minuit strategy 1 succeeded (if it failed Minuit2 strategy 2 is performed).}
    \item{\code{IsAboveMaxEdm}:}{TRUE if the estimated distance from the true minimum is above the tolerance.}

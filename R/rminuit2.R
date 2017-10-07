@@ -44,6 +44,8 @@
 #'    \item{\code{err_minos_neg}:}{Minos-estimated negative parameters' uncertainties (if requested).}
 #'    \item{\code{err_minos_pos_valid}:}{boolean vector, TRUE if Minos positive uncertainties are valid.}
 #'    \item{\code{err_minos_neg_valid}:}{boolean vector, TRUE if Minos negative uncertainties are valid.}
+#'    \item{\code{allOK}:}{TRUE if the fit converged and the parameters and their covariance are OK}
+#'    \item{\code{MinosErrorsValid}:}{TRUE if the MINOS errors are all valid}
 #'    \item{\code{IsValid}:}{TRUE if the fit minimization converged}
 #'    \item{\code{IsValidFirstInvocation}:}{TRUE if Minuit strategy 1 succeeded (if it failed Minuit2 strategy 2 is performed).}
 #'    \item{\code{IsAboveMaxEdm}:}{TRUE if the estimated distance from the true minimum is above the tolerance.}
@@ -183,11 +185,10 @@ rminuit2 <- function(fn, par, err=NULL, lower=NULL, upper=NULL, fix=NULL, opt="h
   names(rc$par) = names(par)
   names(rc$err) = names(par)
 
-  if (!is.null(rc$err_minos_pos)) {
+  if (!is.null(rc$err_minos_pos) && !is.null(rc$err_minos_neg)) {
     names(rc$err_minos_pos) = names(par)
-  }
-  if (!is.null(rc$err_minos_neg)) {
     names(rc$err_minos_neg) = names(par)
+    rc$MinosErrorsValid = all(rc$err_minos_pos_valid, rc$err_minos_ned_valid)
   }
 
   ##
@@ -202,6 +203,19 @@ rminuit2 <- function(fn, par, err=NULL, lower=NULL, upper=NULL, fix=NULL, opt="h
 
   colnames(rc$cov) = names(par)
   rownames(rc$cov) = names(par)
+
+  ##--- overall fit and covariance valid flag
+  rc$allOK = all(
+    rc$IsValid,
+    rc$HasValidParameters,
+    rc$HasValidCovariance,
+    rc$HasAccurateCovar,
+    rc$HasPosDefCovar,
+    !rc$HesseFailed,
+    rc$HasCovariance,
+    !rc$IsAboveMaxEdm,
+    !rc$HasReachedCallLimit
+  )
 
   if (!rc$IsValid) warning("migrad failed")
   if (!rc$IsValidFirstInvocation) warning("migrad first invocation failed, use strategy 2")
