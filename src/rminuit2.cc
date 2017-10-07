@@ -23,6 +23,7 @@
 #include <math.h>
 #include <string>
 #include <algorithm>
+#include <memory>
 
 #ifdef HAVE_CONFIG_H
   #include "config.h"
@@ -119,8 +120,8 @@ Rcpp::List rminuit2_cpp(
   Rcpp::NumericVector nsigma
   )
 {
-  //--- Pointer to abstract base classes
-  Rcpp::EvalBase *ev_fn(NULL);
+  //--- Pointer to abstract base classes, autodestructs when out of scope
+  std::unique_ptr<Rcpp::EvalBase> ev_fn;
 
   // Assign class based on object type
   if (TYPEOF(fn) == EXTPTRSXP) {
@@ -128,16 +129,17 @@ Rcpp::List rminuit2_cpp(
     // Non-standard mode: we are being passed an external pointer
     // So assign pointers using external pointer in calls SEXP
     //
-    ev_fn = new Rcpp::EvalCompiled(fn, envir);
+    ev_fn = std::unique_ptr<Rcpp::EvalBase>(new Rcpp::EvalCompiled(fn, envir));
   } else {
     //
     // Standard mode: env_ is an env, functions are R objects
+    // So assign R functions and environment
     //
-    ev_fn = new Rcpp::EvalStandard(fn, envir);    // So assign R functions and environment
+    ev_fn = std::unique_ptr<Rcpp::EvalBase>(new Rcpp::EvalStandard(fn, envir));
   }
 
   //--- create function to be minimized with Minuit2
-  FcnRcppAdapter fFCN(ev_fn);
+  FcnRcppAdapter fFcn(ev_fn.get());
 
   auto dpar( as< std::vector<double> >(par) );
   auto derr( as< std::vector<double> >(err) );
@@ -170,53 +172,53 @@ Rcpp::List rminuit2_cpp(
     // if (ifix[i] != 0) Rcout << "fixed par " << i << std::endl;
   }
 
-  FunctionMinimum* fminp(0);
+  std::unique_ptr<FunctionMinimum> fminp;
 
   if (contained('0', sopt)) {
-    MnMigrad migrad(fFCN, upar, MnStrategy(0));
-    fminp = new FunctionMinimum(migrad(imaxcalls));
+    MnMigrad migrad(fFcn, upar, MnStrategy(0));
+    fminp = std::unique_ptr<FunctionMinimum>(new FunctionMinimum(migrad(imaxcalls)));
   }
 
   if (contained('1', sopt)) {
-    MnMigrad migrad(fFCN, fminp ? fminp->UserState() : upar, MnStrategy(1));
-    if (fminp) {
+    MnMigrad migrad(fFcn, fminp ? fminp->UserState() : upar, MnStrategy(1));
+    if (fminp != nullptr) {
       *fminp = migrad(imaxcalls);
     } else {
-      fminp = new FunctionMinimum(migrad(imaxcalls));
+      fminp = std::unique_ptr<FunctionMinimum>(new FunctionMinimum(migrad(imaxcalls)));
     }
   }
 
   if (contained('2', sopt)) {
-    MnMigrad migrad(fFCN, fminp ? fminp->UserState() : upar, MnStrategy(2));
-    if (fminp) {
+    MnMigrad migrad(fFcn, fminp ? fminp->UserState() : upar, MnStrategy(2));
+    if (fminp != nullptr) {
       *fminp = migrad(imaxcalls);
     } else {
-      fminp = new FunctionMinimum(migrad(imaxcalls));
+      fminp = std::unique_ptr<FunctionMinimum>(new FunctionMinimum(migrad(imaxcalls)));
     }
   }
 
   auto migrad_first_failed(false);
   if (!contained('0', sopt) && !contained('1', sopt) && !contained('2', sopt)) {
     //--- default strategy
-    MnMigrad migrad(fFCN, upar);
-    fminp = new FunctionMinimum(migrad(imaxcalls));
+    MnMigrad migrad(fFcn, upar);
+    fminp = std::unique_ptr<FunctionMinimum>(new FunctionMinimum(migrad(imaxcalls)));
 
     if (!fminp->IsValid()) {
       migrad_first_failed = true;
       //--- try with strategy 2 if failed
       Rcpp::warning("First migrad call failed, try with strategy=2");
-      MnMigrad migrad2(fFCN, fminp->UserState(), MnStrategy(2));
+      MnMigrad migrad2(fFcn, fminp->UserState(), MnStrategy(2));
       *fminp = migrad2(imaxcalls);
     }
-
   }
 
+  //--- get a reference to the object as syntactic sugar
   FunctionMinimum& min(*fminp);
 
   if (contained('h', sopt)) {
     //--- run hesse to compute Hessian and errors
     MnHesse hesse;
-    hesse(fFCN, min);
+    hesse(fFcn, min);
   }
 
   // Rcout << "UserParameters " << min.UserParameters() << std::endl;
@@ -227,8 +229,8 @@ Rcpp::List rminuit2_cpp(
   std::vector<bool> minos_pos_err_valid;
   std::vector<bool> minos_neg_err_valid;
   if (contained('m', sopt)) {
-    MnMinos Minos(fFCN, min);
-    fFCN.SetErrorDef(dnsigma * dnsigma);
+    MnMinos Minos(fFcn, min);
+    fFcn.SetErrorDef(dnsigma * dnsigma);
     for(unsigned int i=0; i<par.size(); i++) {
       if (ifix[i]) {
         minos_pos_err.push_back(0);
