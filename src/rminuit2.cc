@@ -224,6 +224,8 @@ Rcpp::List rminuit2_cpp(
 
   std::vector<double> minos_pos_err;
   std::vector<double> minos_neg_err;
+  std::vector<bool> minos_pos_err_valid;
+  std::vector<bool> minos_neg_err_valid;
   if (contained('m', sopt)) {
     MnMinos Minos(fFCN, min);
     fFCN.SetErrorDef(dnsigma * dnsigma);
@@ -231,9 +233,14 @@ Rcpp::List rminuit2_cpp(
       if (ifix[i]) {
         minos_pos_err.push_back(0);
         minos_neg_err.push_back(0);
+        minos_pos_err_valid.push_back(true);
+        minos_neg_err_valid.push_back(true);
       } else {
-        minos_pos_err.push_back(Minos(i).second);
-        minos_neg_err.push_back(Minos(i).first);
+        ROOT::Minuit2::MinosError me(Minos.Minos(i));
+        minos_pos_err.push_back(me.Upper());
+        minos_neg_err.push_back(me.Lower());
+        minos_pos_err_valid.push_back(me.UpperValid());
+        minos_neg_err_valid.push_back(me.LowerValid());
       }
     }
   }
@@ -257,6 +264,8 @@ Rcpp::List rminuit2_cpp(
   if (contained('m', sopt)) {
     rc["err_minos_pos"] = minos_pos_err;
     rc["err_minos_neg"] = minos_neg_err;
+    rc["err_minos_pos_valid"] = minos_pos_err_valid;
+    rc["err_minos_neg_valid"] = minos_neg_err_valid;
   }
 
   rc["fval"] = min.Fval();
