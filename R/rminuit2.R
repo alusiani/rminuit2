@@ -14,14 +14,14 @@
 #' @param upper numeric vector, upper bounds for the parameters (default none)
 #' @param fix boolean vector, each TRUE element fixes the corresponding parameter
 #' @param opt string, pass fit options, default "h" (compute HESSE errors)
-#'   \itemize{
-#'   \item{v}{Verbose mode (not yet implemented)}
-#'   \item{h}{Run Hesse to estimate errors}
-#'   \item{m}{Get Minos errors}
-#'   \item{0}{Run Migrad with strategy 0}
-#'   \item{1}{Run Migrad with strategy 1}
-#'   \item{2}{Run Migrad with strategy 2}
-#'   \item{no 123}{Run Migrad with strategy 1 and if fails 2}
+#'   \describe{
+#'   \item{\code{v}:}{Verbose mode (not yet implemented)}
+#'   \item{\code{h}:}{Run Hesse to estimate errors}
+#'   \item{\code{m}:}{Get Minos errors}
+#'   \item{\code{0}:}{Run Migrad with strategy 0}
+#'   \item{\code{1}:}{Run Migrad with strategy 1}
+#'   \item{\code{2}:}{Run Migrad with strategy 2}
+#'   \item{neither \code{1}, \code{2}, \code{3}:}{Run Migrad with strategy 1, and if it fails run with strategy 2}
 #'   }
 #' @param envir An R environment containing all extra arguments to be passed
 #'   to the objective function, which must be matched exactly. If the objective
@@ -34,13 +34,27 @@
 #' @param nsigma numeric, number of standard deviations for Minos errors
 #'
 #' @return A list with the following components:
-#'  \itemize{
-#'    \item{value}{The minimized value of the objective function.}
-#'    \item{par}{A numerical array with the parameters that minimize the function.}
-#'    \item{par_err}{A numerical array with the estimeted parameters' uncertainties.}
-#'    \item{par_cov}{A matrix with the estimated covariance matrix of the parameters.}
-#'    \item{convergence}{An integer code. Zero indicates that convergence was reached without issues. Negative values indicate errors in the execution of the L-BFGS routine.}
-#'    \item{message}{A character object detailing execution errors. This component is only returned if the convergence code is different form zero.}
+#'  \describe{
+#'    \item{\code{fval}:}{Value of function at found minimum (1/2 * chi square if the function is the negative log-likelihood of a Gaussian  likelihood.}
+#'    \item{\code{Edm}:}{Estimated distance from the value of the function true minimum.}
+#'    \item{\code{par}:}{Fitted parameters.}
+#'    \item{\code{err}:}{Estimated uncertainties of fitted parameters.}
+#'    \item{\code{cov}:}{Covariance matrix of the fitted parameters.}
+#'    \item{\code{err_minos_pos}:}{Minos-estimated positive parameters' uncertainties (if requested).}
+#'    \item{\code{err_minos_neg}:}{Minos-estimated negative parameters' uncertainties (if requested).}
+#'    \item{\code{err_minos_pos_valid}:}{boolean vector, TRUE if Minos positive uncertainties are valid.}
+#'    \item{\code{err_minos_neg_valid}:}{boolean vector, TRUE if Minos negative uncertainties are valid.}
+#'    \item{\code{IsValid}:}{TRUE if the fit minimization converged}
+#'    \item{\code{IsValidFirstInvocation}:}{TRUE if Minuit strategy 1 succeeded (if it failed Minuit2 strategy 2 is performed).}
+#'    \item{\code{IsAboveMaxEdm}:}{TRUE if the estimated distance from the true minimum is above the tolerance.}
+#'    \item{\code{HasReachedCallLimit}:}{TRUE if the maximum call limit was exceeded.}
+#'    \item{\code{HasValidParameters}:}{TRUE if the fitted parameters are considered valid.}
+#'    \item{\code{HasCovariance}:}{TRUE if a covariance matrix is returned.}
+#'    \item{\code{HasValidCovariance}:}{TRUE if the estimated covariance matrix is considered valid.}
+#'    \item{\code{HasAccurateCovar}:}{TRUE if the accuracy of the estimated covariance matrix is considered valid.}
+#'    \item{\code{HasPosDefCovar}:}{TRUE if the numerically computed covariance matrix is positive definite.}
+#'    \item{\code{HasMadePosDefCovar}:}{TRUE if the covariance matrix has been adjusted to make it positive definite.}
+#'    \item{\code{HesseFailed}:}{TRUE if the numeric computation of the HESSE matrix failed.}
 #'  }
 #'
 #' @author Alberto Lusiani, \email{alusiani@gmail.com}
@@ -48,15 +62,48 @@
 #' @keywords minimization fitting optimization
 #'
 #' @examples
+#' #
 #' # Rosenbrock Banana function
-#'
+#' #
 #' rosenbrock <- function(x) {
 #'     x1 <- x[1]
 #'     x2 <- x[2]
 #'     100 * (x2 - x1 * x1)^2 + (1 - x1)^2
 #' }
+#' 
+#' # minimize Rosenbrock Banana function fitting its two parameters
+#' fit.rc <- rminuit2(rosenbrock, c(par1=-1.2, par2=1))
 #'
-#' output <- rminuit2(rosenbrock, c(-1.2, 1))
+#' # print fitted parameters
+#' fit.rc$par
+#' 
+#' #
+#' # simulate model y = a*exp(-x/b)
+#' #
+#' x = seq(0, 1, length.out=31)
+#' y.func = function(x, par) par[1]*exp(-x/par[2])
+#' 
+#' # simulate data with Gaussian errors for specific model
+#' model.par = c(a=2.3, b=0.47)
+#' y.err = 0.01
+#' y = y.func(x, par=model.par) + rnorm(sd=y.err, n=length(x))
+#' 
+#' # negative log-likelihood for model
+#' halfchisq = function(par, x, y, y.err) {
+#'   sum( (y - y.func(x, par))^2 / (2 * y.err^2) )
+#' }
+#' 
+#' # fit model on data, ask to compute Minos errors too
+#' fit.rc = rminuit2(halfchisq, c(a=-1, b=10), opt="hm", x=x, y=y, y.err=y.err)
+#' 
+#' # chi square / number of degrees of freedom
+#' cbind(chisq=2*fit.rc$fval, ndof=length(x) - length(model.par))
+#' 
+#' # fitted parameters and their estimated uncertainties
+#' cbind(value=fit.rc$par, error=fit.rc$err, minos_pos=fit.rc$err_minos_pos, minos_neg=fit.rc$err_minos_neg)
+#'
+#' # parameters' correlation matrix
+#' cov2cor(fit.rc$cov)
 #'
 #' @useDynLib rminuit2
 #'
