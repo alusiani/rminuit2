@@ -3,12 +3,10 @@
 #' Performs function minimization using
 #' \href{https://project-mathlibs.web.cern.ch/project-mathlibs/sw/Minuit2/html/index.html}{Minuit2}
 #'
-#' @param fn The function to be minimized, with first argument a numeric
-#'   vector of the parameters to be optimized. The function should be either an R function
-#'   or an external pointer to a C++ function compiled using the
-#'   \code{inline} interface. For more info about implementing the objective
-#'   function as compiled C++ code, see the lbfgs package vignette
-#' @param par numeric vector, initial values of the function parameters
+#' @param mll The function to be minimized.
+#'   The full potential of this package is attained when the function corresponds to
+#'   the negative logarithm of a likelihood or minus-log-likelihood (MLL).
+#' @param start numeric vector, initial values of the function parameters
 #' @param err numeric vector, expected uncertainty of function parameters
 #' @param lower numeric vector, lower bounds for the parameters (default none)
 #' @param upper numeric vector, upper bounds for the parameters (default none)
@@ -23,58 +21,184 @@
 #'   \item{\code{2}:}{Run Migrad with strategy 2}
 #'   \item{neither \code{1}, \code{2}, \code{3}:}{Run Migrad with strategy 1, and if it fails run with strategy 2}
 #'   }
-#' @param envir An R environment containing all extra arguments to be passed
-#'   to the objective function, which must be matched exactly. If the objective
-#'   function is implemented in C++, extra arguments must be passed using this option,
-#'   rather than the \code{...} construct. If the functions are implemented in R, extra
-#'   arguments should be passed to them using the \code{...} construct instead.
-#' @param ... construct. If the functions are implemented in R, extra arguments
-#'   should be passed to them using the \code{...} construct instead.
 #' @param maxcalls integer, maximum number of calls, defaults to \code{0} (no limit).
 #' @param nsigma numeric, number of standard deviations for Minos errors
+#' @param envir not used. Will possibly be used in the future as the same argument in \code{rminuit2.par}.
+#' @param ... extra arguments for the mll function.
 #'
 #' @return A list with the following components:
 #'  \describe{
 #'    \item{\code{fval}:}{Value of function at found minimum (1/2 * chi square if the function is the negative log-likelihood of a Gaussian  likelihood.}
-#'    \item{\code{Edm}:}{Estimated distance from the value of the function true minimum.}
-#'    \item{\code{par}:}{Fitted parameters.}
-#'    \item{\code{err}:}{Estimated uncertainties of fitted parameters.}
-#'    \item{\code{cov}:}{Covariance matrix of the fitted parameters.}
-#'    \item{\code{err_minos_pos}:}{Minos-estimated positive parameters' uncertainties (if Minos errors were requested).}
-#'    \item{\code{err_minos_neg}:}{Minos-estimated negative parameters' uncertainties (if Minos errors requested).}
-#'    \item{\code{err_minos_pos_valid}:}{boolean vector, TRUE if Minos positive uncertainties are valid (if Minos errors were requested).}
-#'    \item{\code{err_minos_neg_valid}:}{boolean vector, TRUE if Minos negative uncertainties are valid (if Minos errors were requested).}
+#'    \item{\code{Edm}:}{Estimated distance from the value of the function true minimum}
+#'    \item{\code{par}:}{Fitted parameters}
+#'    \item{\code{err}:}{Estimated uncertainties of fitted parameters}
+#'    \item{\code{cov}:}{Covariance matrix of the fitted parameters}
+#'    \item{\code{err_minos_pos}:}{Minos-estimated positive parameters' uncertainties (if Minos errors were requested)}
+#'    \item{\code{err_minos_neg}:}{Minos-estimated negative parameters' uncertainties (if Minos errors requested)}
+#'    \item{\code{err_minos_pos_valid}:}{boolean vector, TRUE if Minos positive uncertainties are valid (if Minos errors were requested)}
+#'    \item{\code{err_minos_neg_valid}:}{boolean vector, TRUE if Minos negative uncertainties are valid (if Minos errors were requested)}
 #'    \item{\code{allOK}:}{TRUE if the fit converged and the parameters and their covariance are OK}
 #'    \item{\code{MinosErrorsValid}:}{TRUE if the MINOS errors are all valid}
 #'    \item{\code{IsValid}:}{TRUE if the fit minimization converged}
-#'    \item{\code{IsValidFirstInvocation}:}{TRUE if Minuit strategy 1 succeeded (if it failed Minuit2 strategy 2 is performed).}
-#'    \item{\code{IsAboveMaxEdm}:}{TRUE if the estimated distance from the true minimum is above the tolerance.}
-#'    \item{\code{HasReachedCallLimit}:}{TRUE if the maximum call limit was exceeded.}
-#'    \item{\code{HasValidParameters}:}{TRUE if the fitted parameters are considered valid.}
-#'    \item{\code{HasCovariance}:}{TRUE if a covariance matrix is returned.}
-#'    \item{\code{HasValidCovariance}:}{TRUE if the estimated covariance matrix is considered valid.}
-#'    \item{\code{HasAccurateCovar}:}{TRUE if the accuracy of the estimated covariance matrix is considered valid.}
-#'    \item{\code{HasPosDefCovar}:}{TRUE if the numerically computed covariance matrix is positive definite.}
-#'    \item{\code{HasMadePosDefCovar}:}{TRUE if the covariance matrix has been adjusted to make it positive definite.}
-#'    \item{\code{HesseFailed}:}{TRUE if the numeric computation of the HESSE matrix failed.}
+#'    \item{\code{IsValidFirstInvocation}:}{TRUE if Minuit strategy 1 succeeded (if it failed Minuit2 strategy 2 is performed)}
+#'    \item{\code{IsAboveMaxEdm}:}{TRUE if the estimated distance from the true minimum is above the tolerance}
+#'    \item{\code{HasReachedCallLimit}:}{TRUE if the maximum call limit was exceeded}
+#'    \item{\code{HasValidParameters}:}{TRUE if the fitted parameters are considered valid}
+#'    \item{\code{HasCovariance}:}{TRUE if a covariance matrix is returned}
+#'    \item{\code{HasValidCovariance}:}{TRUE if the estimated covariance matrix is considered valid}
+#'    \item{\code{HasAccurateCovar}:}{TRUE if the accuracy of the estimated covariance matrix is considered valid}
+#'    \item{\code{HasPosDefCovar}:}{TRUE if the numerically computed covariance matrix is positive definite}
+#'    \item{\code{HasMadePosDefCovar}:}{TRUE if the covariance matrix has been adjusted to make it positive definite}
+#'    \item{\code{HesseFailed}:}{TRUE if the numeric computation of the HESSE matrix failed}
 #'  }
 #'
+#' @examples
+#' 
+#' #
+#' # Rosenbrock Banana function, to be minimized vs. x, y
+#' #
+#' rosenbrock <- function(x, y, a, b) {
+#'   (a-x)^2 + b*(y-x^2)^2
+#' }
+#' 
+#' # minimize Rosenbrock Banana function, also setting parameters a, b
+#' fit.rc <- rminuit2(rosenbrock, c(x=0.7, y=1.2), a=1, b=100)
+#' fit.rc$par
+#' 
+#' #
+#' # simulate model y = a*exp(-x/b)
+#' #
+#' x = seq(0, 1, length.out=31)
+#' y.func = function(x, norm, tau) norm*exp(-x/tau)
+#' 
+#' # simulate data with Gaussian errors for specific model
+#' model.par = c(norm=2.3, tau=0.47)
+#' y.err = 0.01
+#' y = do.call(y.func, c(list(x), model.par)) + rnorm(sd=y.err, n=length(x))
+#' 
+#' # negative log-likelihood for model
+#' halfchisq = function(norm, tau, x, y, y.err) {
+#'   sum( (y - y.func(x, norm, tau))^2 / (2 * y.err^2) )
+#' }
+#' 
+#' # fit model on data, ask to compute Minos errors too
+#' fit.rc = rminuit2(halfchisq, c(norm=1, tau=10), opt="hm", x=x, y=y, y.err=y.err)
+#' 
+#' # chi square / number of degrees of freedom
+#' cbind(chisq=2*fit.rc$fval, ndof=length(x) - length(model.par))
+#' 
+#' # fitted parameters and their estimated uncertainties
+#' cbind(model.value=model.par, value=fit.rc$par, error=fit.rc$err,
+#'       minos_pos=fit.rc$err_minos_pos, minos_neg=fit.rc$err_minos_neg)
+#' 
+#' # parameters' correlation matrix
+#' cov2cor(fit.rc$cov)
+#' 
 #' @author Alberto Lusiani, \email{alusiani@gmail.com}
 #'
 #' @keywords minimization fitting optimization
 #'
+#' @useDynLib rminuit2
+#'
+#' @importFrom Rcpp sourceCpp
+#' @importFrom Rcpp evalCpp
+#' @importFrom methods hasArg
+#' @importFrom stats setNames
+#' 
+#' @seealso rminuit2.par
+#' @export
+#'
+rminuit2 <- function(mll, start = formals(mll), err=NULL, lower=NULL, upper=NULL, fix=NULL, opt="h",
+                     maxcalls=0L, nsigma=1, envir=NULL, ...) {
+  call <- match.call()
+  mll.args <- formals(mll)
+
+  if (is.numeric(start)) start = as.list(start)  
+  if (!missing(start) && (!is.list(start) || is.null(names(start)))) 
+    stop("'start' must be a named list or a named numeric vector")
+
+  ##
+  ## evaluate expressions in start
+  ## catch eval.parent() errors to get meaningful error messages
+  ##
+  start <- tryCatch(start <- sapply(start, eval.parent),
+    error = function(e) {
+      for(el in start) {
+        rc = tryCatch(eval(el), error=function(e) {NA})
+        if (is.na(rc)) {
+          stop(paste0("mll function argument '", el, " cannot be evaluated, add it in start or extra args"))
+        }
+      }           
+    })
+
+  start.names <- names(start)
+  mll.args.match <- match(start.names, names(mll.args))
+  not.init = setdiff(names(mll.args), start.names)
+  not.init = setdiff(not.init, names(list(...)))
+  not.init.flag = sapply(mll.args[not.init], is.symbol)
+  if (any(not.init.flag)) {
+    stop(paste0("\n  mll function arguments: ",
+                paste0("'", not.init[not.init.flag], "'", collapse=", "),
+                "\n  not initialized in either the mll function, in start, or in optional parameters"))
+  }
+  if (anyNA(mll.args.match))
+    stop("some named arguments in 'start' are not arguments to the supplied mll function")
+  start <- start[order(mll.args.match)]
+  start.names <- names(start)
+  mll.par <- function(par, ...) {
+    par.list <- as.list(par)
+    names(par.list) <- start.names
+    par.list = c(par.list, list(...))
+    do.call("mll", par.list)
+  }
+  rminuit2.par(mll.par, start=start, err=err, lower=lower, upper=upper, fix=fix, opt=opt,
+               maxcalls=maxcalls, nsigma=nsigma, envir=envir, ...)
+}
+
+#' Function Minimization with Minuit2
+#'
+#' Performs function minimization using
+#' \href{https://project-mathlibs.web.cern.ch/project-mathlibs/sw/Minuit2/html/index.html}{Minuit2}
+#'
+#' @inherit rminuit2
+#'
+#' @param mll The function to be minimized, which must have as first 
+#'   argument a numeric vector of the parameters to be optimized. Futher
+#'   arguments can be specified as optional arguments in \code{rminuit2.par}.
+#'
+#'   The function can
+#'   also be an external pointer to a C++ function compiled using the
+#'   \code{inline} interface. For more info about implementing the objective
+#'   function as compiled C++ code, see the
+#'   \href{https://cran.r-project.org/web/packages/lbfgs/index.html}{lbfgs} package vignette.
+#' 
+#'   The full potential of this package is attained when the function corresponds to
+#'   the negative logarithm of a likelihood or minus-log-likelihood (MLL).
+#'
+#' @param envir An R environment containing all extra arguments to be passed
+#'   to the mll function, if the mll function is implemented in C++. Arguments
+#'   must be matched exactly. If the mll function is implemented in R
+#'   then the extra arguments should be passed to it using the optional arguments
+#'   in \code{...} instead.
+#'
+#' @param ... extra arguments for the mll function, it the mll function is implemented in R.
+#'   If the mll function is implemented in C++ then the extra arguments
+#'   should be passed to it using the \code{envir} argument instead.
+#'
+#' @seealso rminuit2
+#'
 #' @examples
 #' #
-#' # Rosenbrock Banana function
+#' # Rosenbrock Banana function, to be minimized vs. 2 paramaters
 #' #
-#' rosenbrock <- function(x) {
-#'     x1 <- x[1]
-#'     x2 <- x[2]
-#'     100 * (x2 - x1 * x1)^2 + (1 - x1)^2
+#' rosenbrock <- function(par, a, b) {
+#'   x <- par[1]
+#'   y <- par[2]
+#'   (a-x)^2 + b*(y-x^2)^2
 #' }
 #' 
-#' # minimize Rosenbrock Banana function fitting its two parameters
-#' fit.rc <- rminuit2(rosenbrock, c(a=0.7, b=1.2))
+#' # minimize Rosenbrock Banana function, also setting parameters a, b
+#' fit.rc <- rminuit2.par(rosenbrock, c(x=0.7, y=1.2), a=1, b=100)
 #'
 #' # print fitted parameters
 #' fit.rc$par
@@ -96,37 +220,29 @@
 #' }
 #' 
 #' # fit model on data, ask to compute Minos errors too
-#' fit.rc = rminuit2(halfchisq, c(a=-1, b=10), opt="hm", x=x, y=y, y.err=y.err)
+#' fit.rc = rminuit2.par(halfchisq, c(a=1, b=10), opt="hm", x=x, y=y, y.err=y.err)
 #' 
 #' # chi square / number of degrees of freedom
 #' cbind(chisq=2*fit.rc$fval, ndof=length(x) - length(model.par))
 #' 
-#' # fitted parameters and their estimated uncertainties
-#' cbind(value=fit.rc$par, error=fit.rc$err, minos_pos=fit.rc$err_minos_pos, minos_neg=fit.rc$err_minos_neg)
+#' cbind(model.value=model.par, value=fit.rc$par, error=fit.rc$err,
+#'       minos_pos=fit.rc$err_minos_pos, minos_neg=fit.rc$err_minos_neg)
 #'
 #' # parameters' correlation matrix
 #' cov2cor(fit.rc$cov)
 #'
-#' @useDynLib rminuit2
-#'
-#' @importFrom Rcpp sourceCpp
-#' @importFrom Rcpp evalCpp
-#' @importFrom methods hasArg
-#' @importFrom stats setNames
-#'
 #' @export
 #'
-rminuit2 <- function(fn, par, err=NULL, lower=NULL, upper=NULL, fix=NULL, opt="h",
-  envir=NULL, ..., maxcalls=0L, nsigma=1) {
+rminuit2.par <- function(mll, start, err=NULL, lower=NULL, upper=NULL, fix=NULL, opt="h",
+                         maxcalls=0L, nsigma=1, envir=NULL, ...) {
 
   ##--- Initialize environment if NULL
   ## if (!hasArg(envir)) envir <- new.env()
   if (is.null(envir)) envir <- new.env()
 
-  ##--- Set up parameters
-  npar <- length(par)
-  xtol <- .Machine$double.eps
+  ## xtol <- .Machine$double.eps
 
+  npar <- length(start)
   if (is.null(err))   err = rep(0.1, npar)
   if (is.null(lower)) lower = rep(-Inf, npar)
   if (is.null(upper)) upper = rep(Inf, npar)
@@ -152,13 +268,38 @@ rminuit2 <- function(fn, par, err=NULL, lower=NULL, upper=NULL, fix=NULL, opt="h
     nsigma = nsigma[1]
   }
 
-  if (is.null(names(par))) names(par) = paste0("p", seq(1, npar))
-  par = setNames(as.numeric(par), names(par))
+  if (is.null(names(start))) names(start) = paste0("p", seq(1, npar))
+  par.names = names(start)
+  start = setNames(as.numeric(start), par.names)
 
-  if (length(err) != npar) stop("vector 'err' must have the same length as 'par'")
-  if (length(lower) != npar) stop("vector 'lower' must have the same length as 'par'")
-  if (length(upper) != npar) stop("vector 'upper' must have the same length as 'par'")
-  if (length(fix) != npar) stop("vector 'fix' must have the same length as 'par'")
+  if (!is.null(names(err))) {
+    if (any(! names(err) %in% par.names))
+      stop("some named arguments in 'err' are not parameters to be minimized in 'start'")
+    err[par.names] = ifelse(par.names %in% names(err), err, 0.1)
+  }
+            
+  if (!is.null(names(lower))) {
+    if (any(! names(lower) %in% par.names))
+      stop("some named arguments in 'lower' are not parameters to be minimized in 'start'")
+    lower[par.names] = ifelse(par.names %in% names(lower), lower, -Inf)
+  }
+            
+  if (!is.null(names(upper))) {
+    if (any(! names(upper) %in% par.names))
+      stop("some named arguments in 'upper' are not parameters to be minimized in 'start'")
+    upper[par.names] = ifelse(par.names %in% names(upper), upper, Inf)
+  }
+            
+  if (!is.null(names(fix))) {
+    if (any(! names(fix) %in% par.names))
+      stop("some named arguments in 'fix' are not parameters to be minimized in 'start'")
+    fix[par.names] = ifelse(par.names %in% names(fix), fix, 0)
+  }
+
+  if (length(err) != npar) stop("if unnamed, vector 'err' must have the same length as 'start'")
+  if (length(lower) != npar) stop("if unnamed, vector 'lower' must have the same length as 'start'")
+  if (length(upper) != npar) stop("if unnamed, vector 'upper' must have the same length as 'start'")
+  if (length(fix) != npar) stop("if unnamed, vector 'fix' must have the same length as 'start'")
 
   ##
   ## prepare args for c++ call preventing invalid input
@@ -182,17 +323,17 @@ rminuit2 <- function(fn, par, err=NULL, lower=NULL, upper=NULL, fix=NULL, opt="h
 
   ##--- Call main C++ routine
   rc <- .Call('_rminuit2_rminuit2_cpp', PACKAGE = 'rminuit2',
-              fn, par, err, lower, upper,
+              mll, start, err, lower, upper,
               fix, opt, envir, maxcalls, nsigma)
 
   ##--- add names for output
-  names(rc$par) = names(par)
-  names(rc$err) = names(par)
+  names(rc$par) = par.names
+  names(rc$err) = par.names
 
   ##--- add names of Minos errors for output
   if (!is.null(rc$err_minos_pos) && !is.null(rc$err_minos_neg)) {
-    names(rc$err_minos_pos) = names(par)
-    names(rc$err_minos_neg) = names(par)
+    names(rc$err_minos_pos) = par.names
+    names(rc$err_minos_neg) = par.names
     rc$MinosErrorsValid = all(rc$err_minos_pos_valid, rc$err_minos_ned_valid)
     if (!rc$MinosErrorsValid) warning("One or more Minos errors are not valid")
   }
@@ -207,8 +348,8 @@ rminuit2 <- function(fn, par, err=NULL, lower=NULL, upper=NULL, fix=NULL, opt="h
   cov.reorder = c( which(fix==0), which(fix!=0) )
   rc$cov[cov.reorder, cov.reorder] = rc$cov
 
-  colnames(rc$cov) = names(par)
-  rownames(rc$cov) = names(par)
+  colnames(rc$cov) = par.names
+  rownames(rc$cov) = par.names
 
   ##--- compute overall fit and covariance valid flag
   rc$allOK = all(

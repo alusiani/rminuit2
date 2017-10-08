@@ -4,17 +4,16 @@
 \alias{rminuit2}
 \title{Function Minimization with Minuit2}
 \usage{
-rminuit2(fn, par, err = NULL, lower = NULL, upper = NULL, fix = NULL,
-  opt = "h", envir = NULL, ..., maxcalls = 0L, nsigma = 1)
+rminuit2(mll, start = formals(mll), err = NULL, lower = NULL,
+  upper = NULL, fix = NULL, opt = "h", maxcalls = 0L, nsigma = 1,
+  envir = NULL, ...)
 }
 \arguments{
-\item{fn}{The function to be minimized, with first argument a numeric
-vector of the parameters to be optimized. The function should be either an R function
-or an external pointer to a C++ function compiled using the
-\code{inline} interface. For more info about implementing the objective
-function as compiled C++ code, see the lbfgs package vignette}
+\item{mll}{The function to be minimized.
+The full potential of this package is attained when the function corresponds to
+the negative logarithm of a likelihood or minus-log-likelihood (MLL).}
 
-\item{par}{numeric vector, initial values of the function parameters}
+\item{start}{numeric vector, initial values of the function parameters}
 
 \item{err}{numeric vector, expected uncertainty of function parameters}
 
@@ -35,44 +34,39 @@ function as compiled C++ code, see the lbfgs package vignette}
 \item{neither \code{1}, \code{2}, \code{3}:}{Run Migrad with strategy 1, and if it fails run with strategy 2}
 }}
 
-\item{envir}{An R environment containing all extra arguments to be passed
-to the objective function, which must be matched exactly. If the objective
-function is implemented in C++, extra arguments must be passed using this option,
-rather than the \code{...} construct. If the functions are implemented in R, extra
-arguments should be passed to them using the \code{...} construct instead.}
-
-\item{...}{construct. If the functions are implemented in R, extra arguments
-should be passed to them using the \code{...} construct instead.}
-
 \item{maxcalls}{integer, maximum number of calls, defaults to \code{0} (no limit).}
 
 \item{nsigma}{numeric, number of standard deviations for Minos errors}
+
+\item{envir}{not used. Will possibly be used in the future as the same argument in \code{rminuit2.par}.}
+
+\item{...}{extra arguments for the mll function.}
 }
 \value{
 A list with the following components:
  \describe{
    \item{\code{fval}:}{Value of function at found minimum (1/2 * chi square if the function is the negative log-likelihood of a Gaussian  likelihood.}
-   \item{\code{Edm}:}{Estimated distance from the value of the function true minimum.}
-   \item{\code{par}:}{Fitted parameters.}
-   \item{\code{err}:}{Estimated uncertainties of fitted parameters.}
-   \item{\code{cov}:}{Covariance matrix of the fitted parameters.}
-   \item{\code{err_minos_pos}:}{Minos-estimated positive parameters' uncertainties (if Minos errors were requested).}
-   \item{\code{err_minos_neg}:}{Minos-estimated negative parameters' uncertainties (if Minos errors requested).}
-   \item{\code{err_minos_pos_valid}:}{boolean vector, TRUE if Minos positive uncertainties are valid (if Minos errors were requested).}
-   \item{\code{err_minos_neg_valid}:}{boolean vector, TRUE if Minos negative uncertainties are valid (if Minos errors were requested).}
+   \item{\code{Edm}:}{Estimated distance from the value of the function true minimum}
+   \item{\code{par}:}{Fitted parameters}
+   \item{\code{err}:}{Estimated uncertainties of fitted parameters}
+   \item{\code{cov}:}{Covariance matrix of the fitted parameters}
+   \item{\code{err_minos_pos}:}{Minos-estimated positive parameters' uncertainties (if Minos errors were requested)}
+   \item{\code{err_minos_neg}:}{Minos-estimated negative parameters' uncertainties (if Minos errors requested)}
+   \item{\code{err_minos_pos_valid}:}{boolean vector, TRUE if Minos positive uncertainties are valid (if Minos errors were requested)}
+   \item{\code{err_minos_neg_valid}:}{boolean vector, TRUE if Minos negative uncertainties are valid (if Minos errors were requested)}
    \item{\code{allOK}:}{TRUE if the fit converged and the parameters and their covariance are OK}
    \item{\code{MinosErrorsValid}:}{TRUE if the MINOS errors are all valid}
    \item{\code{IsValid}:}{TRUE if the fit minimization converged}
-   \item{\code{IsValidFirstInvocation}:}{TRUE if Minuit strategy 1 succeeded (if it failed Minuit2 strategy 2 is performed).}
-   \item{\code{IsAboveMaxEdm}:}{TRUE if the estimated distance from the true minimum is above the tolerance.}
-   \item{\code{HasReachedCallLimit}:}{TRUE if the maximum call limit was exceeded.}
-   \item{\code{HasValidParameters}:}{TRUE if the fitted parameters are considered valid.}
-   \item{\code{HasCovariance}:}{TRUE if a covariance matrix is returned.}
-   \item{\code{HasValidCovariance}:}{TRUE if the estimated covariance matrix is considered valid.}
-   \item{\code{HasAccurateCovar}:}{TRUE if the accuracy of the estimated covariance matrix is considered valid.}
-   \item{\code{HasPosDefCovar}:}{TRUE if the numerically computed covariance matrix is positive definite.}
-   \item{\code{HasMadePosDefCovar}:}{TRUE if the covariance matrix has been adjusted to make it positive definite.}
-   \item{\code{HesseFailed}:}{TRUE if the numeric computation of the HESSE matrix failed.}
+   \item{\code{IsValidFirstInvocation}:}{TRUE if Minuit strategy 1 succeeded (if it failed Minuit2 strategy 2 is performed)}
+   \item{\code{IsAboveMaxEdm}:}{TRUE if the estimated distance from the true minimum is above the tolerance}
+   \item{\code{HasReachedCallLimit}:}{TRUE if the maximum call limit was exceeded}
+   \item{\code{HasValidParameters}:}{TRUE if the fitted parameters are considered valid}
+   \item{\code{HasCovariance}:}{TRUE if a covariance matrix is returned}
+   \item{\code{HasValidCovariance}:}{TRUE if the estimated covariance matrix is considered valid}
+   \item{\code{HasAccurateCovar}:}{TRUE if the accuracy of the estimated covariance matrix is considered valid}
+   \item{\code{HasPosDefCovar}:}{TRUE if the numerically computed covariance matrix is positive definite}
+   \item{\code{HasMadePosDefCovar}:}{TRUE if the covariance matrix has been adjusted to make it positive definite}
+   \item{\code{HesseFailed}:}{TRUE if the numeric computation of the HESSE matrix failed}
  }
 }
 \description{
@@ -80,49 +74,50 @@ Performs function minimization using
 \href{https://project-mathlibs.web.cern.ch/project-mathlibs/sw/Minuit2/html/index.html}{Minuit2}
 }
 \examples{
+
 #
-# Rosenbrock Banana function
+# Rosenbrock Banana function, to be minimized vs. x, y
 #
-rosenbrock <- function(x) {
-    x1 <- x[1]
-    x2 <- x[2]
-    100 * (x2 - x1 * x1)^2 + (1 - x1)^2
+rosenbrock <- function(x, y, a, b) {
+  (a-x)^2 + b*(y-x^2)^2
 }
 
-# minimize Rosenbrock Banana function fitting its two parameters
-fit.rc <- rminuit2(rosenbrock, c(a=0.7, b=1.2))
-
-# print fitted parameters
+# minimize Rosenbrock Banana function, also setting parameters a, b
+fit.rc <- rminuit2(rosenbrock, c(x=0.7, y=1.2), a=1, b=100)
 fit.rc$par
 
 #
 # simulate model y = a*exp(-x/b)
 #
 x = seq(0, 1, length.out=31)
-y.func = function(x, par) par[1]*exp(-x/par[2])
+y.func = function(x, norm, tau) norm*exp(-x/tau)
 
 # simulate data with Gaussian errors for specific model
-model.par = c(a=2.3, b=0.47)
+model.par = c(norm=2.3, tau=0.47)
 y.err = 0.01
-y = y.func(x, par=model.par) + rnorm(sd=y.err, n=length(x))
+y = do.call(y.func, c(list(x), model.par)) + rnorm(sd=y.err, n=length(x))
 
 # negative log-likelihood for model
-halfchisq = function(par, x, y, y.err) {
-  sum( (y - y.func(x, par))^2 / (2 * y.err^2) )
+halfchisq = function(norm, tau, x, y, y.err) {
+  sum( (y - y.func(x, norm, tau))^2 / (2 * y.err^2) )
 }
 
 # fit model on data, ask to compute Minos errors too
-fit.rc = rminuit2(halfchisq, c(a=-1, b=10), opt="hm", x=x, y=y, y.err=y.err)
+fit.rc = rminuit2(halfchisq, c(norm=1, tau=10), opt="hm", x=x, y=y, y.err=y.err)
 
 # chi square / number of degrees of freedom
 cbind(chisq=2*fit.rc$fval, ndof=length(x) - length(model.par))
 
 # fitted parameters and their estimated uncertainties
-cbind(value=fit.rc$par, error=fit.rc$err, minos_pos=fit.rc$err_minos_pos, minos_neg=fit.rc$err_minos_neg)
+cbind(model.value=model.par, value=fit.rc$par, error=fit.rc$err,
+      minos_pos=fit.rc$err_minos_pos, minos_neg=fit.rc$err_minos_neg)
 
 # parameters' correlation matrix
 cov2cor(fit.rc$cov)
 
+}
+\seealso{
+rminuit2.par
 }
 \author{
 Alberto Lusiani, \email{alusiani@gmail.com}
