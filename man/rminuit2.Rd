@@ -56,10 +56,10 @@ A list with the following components:
    \item{\code{par}:}{Fitted parameters.}
    \item{\code{err}:}{Estimated uncertainties of fitted parameters.}
    \item{\code{cov}:}{Covariance matrix of the fitted parameters.}
-   \item{\code{err_minos_pos}:}{Minos-estimated positive parameters' uncertainties (if requested).}
-   \item{\code{err_minos_neg}:}{Minos-estimated negative parameters' uncertainties (if requested).}
-   \item{\code{err_minos_pos_valid}:}{boolean vector, TRUE if Minos positive uncertainties are valid.}
-   \item{\code{err_minos_neg_valid}:}{boolean vector, TRUE if Minos negative uncertainties are valid.}
+   \item{\code{err_minos_pos}:}{Minos-estimated positive parameters' uncertainties (if Minos errors were requested).}
+   \item{\code{err_minos_neg}:}{Minos-estimated negative parameters' uncertainties (if Minos errors requested).}
+   \item{\code{err_minos_pos_valid}:}{boolean vector, TRUE if Minos positive uncertainties are valid (if Minos errors were requested).}
+   \item{\code{err_minos_neg_valid}:}{boolean vector, TRUE if Minos negative uncertainties are valid (if Minos errors were requested).}
    \item{\code{allOK}:}{TRUE if the fit converged and the parameters and their covariance are OK}
    \item{\code{MinosErrorsValid}:}{TRUE if the MINOS errors are all valid}
    \item{\code{IsValid}:}{TRUE if the fit minimization converged}
@@ -90,7 +90,7 @@ rosenbrock <- function(x) {
 }
 
 # minimize Rosenbrock Banana function fitting its two parameters
-fit.rc <- rminuit2(rosenbrock, c(par1=-1.2, par2=1))
+fit.rc <- rminuit2(rosenbrock, c(a=0.7, b=1.2))
 
 # print fitted parameters
 fit.rc$par

@@ -206,7 +206,7 @@ Rcpp::List rminuit2_cpp(
     if (!fminp->IsValid()) {
       migrad_first_failed = true;
       //--- try with strategy 2 if failed
-      Rcpp::warning("First migrad call failed, try with strategy=2");
+      // Rcpp::warning("First migrad call failed, try with strategy=2");
       MnMigrad migrad2(fFcn, fminp->UserState(), MnStrategy(2));
       *fminp = migrad2(imaxcalls);
     }
