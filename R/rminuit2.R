@@ -53,47 +53,47 @@
 #'  }
 #'
 #' @examples
-#' 
+#'
 #' #
 #' # Rosenbrock Banana function, to be minimized vs. x, y
 #' #
 #' rosenbrock <- function(x, y, a, b) {
 #'   (a-x)^2 + b*(y-x^2)^2
 #' }
-#' 
+#'
 #' # minimize Rosenbrock Banana function, also setting parameters a, b
 #' fit.rc <- rminuit2(rosenbrock, c(x=0.7, y=1.2), a=1, b=100)
 #' fit.rc$par
-#' 
+#'
 #' #
 #' # simulate model y = a*exp(-x/b)
 #' #
 #' x = seq(0, 1, length.out=31)
 #' y.func = function(x, norm, tau) norm*exp(-x/tau)
-#' 
+#'
 #' # simulate data with Gaussian errors for specific model
 #' model.par = c(norm=2.3, tau=0.47)
 #' y.err = 0.01
 #' y = do.call(y.func, c(list(x), model.par)) + rnorm(sd=y.err, n=length(x))
-#' 
+#'
 #' # negative log-likelihood for model
 #' halfchisq = function(norm, tau, x, y, y.err) {
 #'   sum( (y - y.func(x, norm, tau))^2 / (2 * y.err^2) )
 #' }
-#' 
+#'
 #' # fit model on data, ask to compute Minos errors too
 #' fit.rc = rminuit2(halfchisq, c(norm=1, tau=10), opt="hm", x=x, y=y, y.err=y.err)
-#' 
+#'
 #' # chi square / number of degrees of freedom
 #' cbind(chisq=2*fit.rc$fval, ndof=length(x) - length(model.par))
-#' 
+#'
 #' # fitted parameters and their estimated uncertainties
 #' cbind(model.value=model.par, value=fit.rc$par, error=fit.rc$err,
 #'       minos_pos=fit.rc$err_minos_pos, minos_neg=fit.rc$err_minos_neg)
-#' 
+#'
 #' # parameters' correlation matrix
 #' cov2cor(fit.rc$cov)
-#' 
+#'
 #' @author Alberto Lusiani, \email{alusiani@gmail.com}
 #'
 #' @keywords minimization fitting optimization
@@ -104,7 +104,7 @@
 #' @importFrom Rcpp evalCpp
 #' @importFrom methods hasArg
 #' @importFrom stats setNames
-#' 
+#'
 #' @seealso rminuit2.par
 #' @export
 #'
@@ -113,8 +113,8 @@ rminuit2 <- function(mll, start = formals(mll), err=NULL, lower=NULL, upper=NULL
   call <- match.call()
   mll.args <- formals(mll)
 
-  if (is.numeric(start)) start = as.list(start)  
-  if (!missing(start) && (!is.list(start) || is.null(names(start)))) 
+  if (is.numeric(start)) start = as.list(start)
+  if (!missing(start) && (!is.list(start) || is.null(names(start))))
     stop("'start' must be a named list or a named numeric vector")
 
   ##
@@ -128,7 +128,7 @@ rminuit2 <- function(mll, start = formals(mll), err=NULL, lower=NULL, upper=NULL
         if (is.na(rc)) {
           stop(paste0("mll function argument '", el, " cannot be evaluated, add it in start or extra args"))
         }
-      }           
+      }
     })
 
   start.names <- names(start)
@@ -162,7 +162,7 @@ rminuit2 <- function(mll, start = formals(mll), err=NULL, lower=NULL, upper=NULL
 #'
 #' @inherit rminuit2
 #'
-#' @param mll The function to be minimized, which must have as first 
+#' @param mll The function to be minimized, which must have as first
 #'   argument a numeric vector of the parameters to be optimized. Futher
 #'   arguments can be specified as optional arguments in \code{rminuit2.par}.
 #'
@@ -171,7 +171,7 @@ rminuit2 <- function(mll, start = formals(mll), err=NULL, lower=NULL, upper=NULL
 #'   \code{inline} interface. For more info about implementing the objective
 #'   function as compiled C++ code, see the
 #'   \href{https://cran.r-project.org/web/packages/lbfgs/index.html}{lbfgs} package vignette.
-#' 
+#'
 #'   The full potential of this package is attained when the function corresponds to
 #'   the negative logarithm of a likelihood or minus-log-likelihood (MLL).
 #'
@@ -196,35 +196,35 @@ rminuit2 <- function(mll, start = formals(mll), err=NULL, lower=NULL, upper=NULL
 #'   y <- par[2]
 #'   (a-x)^2 + b*(y-x^2)^2
 #' }
-#' 
+#'
 #' # minimize Rosenbrock Banana function, also setting parameters a, b
 #' fit.rc <- rminuit2.par(rosenbrock, c(x=0.7, y=1.2), a=1, b=100)
 #'
 #' # print fitted parameters
 #' fit.rc$par
-#' 
+#'
 #' #
 #' # simulate model y = a*exp(-x/b)
 #' #
 #' x = seq(0, 1, length.out=31)
 #' y.func = function(x, par) par[1]*exp(-x/par[2])
-#' 
+#'
 #' # simulate data with Gaussian errors for specific model
 #' model.par = c(a=2.3, b=0.47)
 #' y.err = 0.01
 #' y = y.func(x, par=model.par) + rnorm(sd=y.err, n=length(x))
-#' 
+#'
 #' # negative log-likelihood for model
 #' halfchisq = function(par, x, y, y.err) {
 #'   sum( (y - y.func(x, par))^2 / (2 * y.err^2) )
 #' }
-#' 
+#'
 #' # fit model on data, ask to compute Minos errors too
 #' fit.rc = rminuit2.par(halfchisq, c(a=1, b=10), opt="hm", x=x, y=y, y.err=y.err)
-#' 
+#'
 #' # chi square / number of degrees of freedom
 #' cbind(chisq=2*fit.rc$fval, ndof=length(x) - length(model.par))
-#' 
+#'
 #' cbind(model.value=model.par, value=fit.rc$par, error=fit.rc$err,
 #'       minos_pos=fit.rc$err_minos_pos, minos_neg=fit.rc$err_minos_neg)
 #'
@@ -275,25 +275,25 @@ rminuit2.par <- function(mll, start, err=NULL, lower=NULL, upper=NULL, fix=NULL,
   if (!is.null(names(err))) {
     if (any(! names(err) %in% par.names))
       stop("some named arguments in 'err' are not parameters to be minimized in 'start'")
-    err[par.names] = ifelse(par.names %in% names(err), err, 0.1)
+    err = setNames(ifelse(par.names %in% names(err), err, 0.1), par.names)
   }
-            
+
   if (!is.null(names(lower))) {
     if (any(! names(lower) %in% par.names))
       stop("some named arguments in 'lower' are not parameters to be minimized in 'start'")
-    lower[par.names] = ifelse(par.names %in% names(lower), lower, -Inf)
+    lower = setNames(ifelse(par.names %in% names(lower), lower, -Inf), par.names)
   }
-            
+
   if (!is.null(names(upper))) {
     if (any(! names(upper) %in% par.names))
       stop("some named arguments in 'upper' are not parameters to be minimized in 'start'")
-    upper[par.names] = ifelse(par.names %in% names(upper), upper, Inf)
+    upper = setNames(ifelse(par.names %in% names(upper), upper, Inf), par.names)
   }
-            
+
   if (!is.null(names(fix))) {
     if (any(! names(fix) %in% par.names))
-      stop("some named arguments in 'fix' are not parameters to be minimized in 'start'")
-    fix[par.names] = ifelse(par.names %in% names(fix), fix, 0)
+      stop("some named arguments in 'fix' are not parameters to be minimized in 'start'")    
+    fix = setNames(ifelse(par.names %in% names(fix), fix, 0), par.names)
   }
 
   if (length(err) != npar) stop("if unnamed, vector 'err' must have the same length as 'start'")
