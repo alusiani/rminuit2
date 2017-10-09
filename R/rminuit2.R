@@ -446,7 +446,7 @@ all_named <- function(x) {
 ## copied from package pryr
 ## make a call
 ##
-function (f, ..., .args = list()) 
+make_call <- function (f, ..., .args = list()) 
 {
     if (is.character(f)) 
         f <- as.name(f)
