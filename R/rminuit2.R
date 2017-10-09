@@ -23,7 +23,7 @@
 #'   }
 #' @param maxcalls integer, maximum number of calls, defaults to \code{0} (no limit).
 #' @param nsigma numeric, number of standard deviations for Minos errors
-#' @param envir not used. Will possibly be used in the future as the same argument in \code{rminuit2.par}.
+#' @param envir not used. Will possibly be used in the future as the same argument in \code{rminuit2_par}.
 #' @param ... extra arguments for the mll function.
 #'
 #' @return A list with the following components:
@@ -105,7 +105,7 @@
 #' @importFrom methods hasArg
 #' @importFrom stats setNames
 #'
-#' @seealso rminuit2.par
+#' @seealso rminuit2_par
 #' @export
 #'
 rminuit2 <- function(mll, start = formals(mll), err=NULL, lower=NULL, upper=NULL, fix=NULL, opt="h",
@@ -151,7 +151,7 @@ rminuit2 <- function(mll, start = formals(mll), err=NULL, lower=NULL, upper=NULL
     par.list = c(par.list, list(...))
     do.call("mll", par.list)
   }
-  rminuit2.par(mll.par, start=start, err=err, lower=lower, upper=upper, fix=fix, opt=opt,
+  rminuit2_par(mll.par, start=start, err=err, lower=lower, upper=upper, fix=fix, opt=opt,
                maxcalls=maxcalls, nsigma=nsigma, envir=envir, ...)
 }
 
@@ -164,7 +164,7 @@ rminuit2 <- function(mll, start = formals(mll), err=NULL, lower=NULL, upper=NULL
 #'
 #' @param mll The function to be minimized, which must have as first
 #'   argument a numeric vector of the parameters to be optimized. Futher
-#'   arguments can be specified as optional arguments in \code{rminuit2.par}.
+#'   arguments can be specified as optional arguments in \code{rminuit2_par}.
 #'
 #'   The function can
 #'   also be an external pointer to a C++ function compiled using the
@@ -198,7 +198,7 @@ rminuit2 <- function(mll, start = formals(mll), err=NULL, lower=NULL, upper=NULL
 #' }
 #'
 #' # minimize Rosenbrock Banana function, also setting parameters a, b
-#' fit.rc <- rminuit2.par(rosenbrock, c(x=0.7, y=1.2), a=1, b=100)
+#' fit.rc <- rminuit2_par(rosenbrock, c(x=0.7, y=1.2), a=1, b=100)
 #'
 #' # print fitted parameters
 #' fit.rc$par
@@ -220,7 +220,7 @@ rminuit2 <- function(mll, start = formals(mll), err=NULL, lower=NULL, upper=NULL
 #' }
 #'
 #' # fit model on data, ask to compute Minos errors too
-#' fit.rc = rminuit2.par(halfchisq, c(a=1, b=10), opt="hm", x=x, y=y, y.err=y.err)
+#' fit.rc = rminuit2_par(halfchisq, c(a=1, b=10), opt="hm", x=x, y=y, y.err=y.err)
 #'
 #' # chi square / number of degrees of freedom
 #' cbind(chisq=2*fit.rc$fval, ndof=length(x) - length(model.par))
@@ -233,7 +233,7 @@ rminuit2 <- function(mll, start = formals(mll), err=NULL, lower=NULL, upper=NULL
 #'
 #' @export
 #'
-rminuit2.par <- function(mll, start, err=NULL, lower=NULL, upper=NULL, fix=NULL, opt="h",
+rminuit2_par <- function(mll, start, err=NULL, lower=NULL, upper=NULL, fix=NULL, opt="h",
                          maxcalls=0L, nsigma=1, envir=NULL, ...) {
 
   ##--- Initialize environment if NULL
@@ -292,7 +292,7 @@ rminuit2.par <- function(mll, start, err=NULL, lower=NULL, upper=NULL, fix=NULL,
 
   if (!is.null(names(fix))) {
     if (any(! names(fix) %in% par.names))
-      stop("some named arguments in 'fix' are not parameters to be minimized in 'start'")    
+      stop("some named arguments in 'fix' are not parameters to be minimized in 'start'")
     fix = setNames(ifelse(par.names %in% names(fix), fix, 0), par.names)
   }
 
@@ -381,7 +381,7 @@ rminuit2.par <- function(mll, start, err=NULL, lower=NULL, upper=NULL, fix=NULL,
 
 ##
 ## copied from package pryr
-## covert to environment
+## convert argument to environment
 ##
 to_env <- function(x, quiet = FALSE) {
   if (is.environment(x)) {
@@ -414,30 +414,30 @@ all_named <- function(x) {
 ## copied from package pryr
 ## make a function
 ##
-make_function = function (args, body, env = parent.frame()) 
+make_function <- function (args, body, env = parent.frame())
 {
-    args <- as.pairlist(args)
-    stopifnot(all_named(args), is.language(body))
-    env <- to_env(env)
-    eval(call("function", args, body), env)
+  args <- as.pairlist(args)
+  stopifnot(all_named(args), is.language(body))
+  env <- to_env(env)
+  eval(call("function", args, body), env)
 }
 
 ##
 ## given a model formula, assemble minus log-likelihood for gaussian errors
 ##
-rminuit2.make.gaussian.mll = function(formula, par, data=NULL, weights=NULL, errors=NULL) {
+rminuit2.make.gaussian.mll <- function(formula, par, data=NULL, weights=NULL, errors=NULL) {
   weights = substitute(weights)
   errors = substitute(errors)
-  
+
   if (length(formula) == 2) {
     residexpr <- formula[[2]]
   } else if (length(formula) == 3) {
     residexpr <- call("-", formula[[2]], formula[[3]])
   } else stop("Unrecognized formula")
- 
+
   if (is.null(names(par)))
     names(par) <- paste0("p_", seq_along(par))
-  
+
   if (is.null(data)) {
     ##--- if no data, get from parent frame
     data <- environment(formula)
@@ -446,20 +446,20 @@ rminuit2.make.gaussian.mll = function(formula, par, data=NULL, weights=NULL, err
   } else if (!is.environment(data)) {
     stop("'data' must be a dataframe, list, or environment")
   }
-  
+
   if (!is.null(errors)) fbody = as.call(c(as.name("/"), residexpr, errors))
   if (!is.null(weights)) fbody = as.call(c(as.name("*"), fbody, weights))
   fbody = as.call(c(as.name("^"), fbody, 2))
   fbody = as.call(c(quote(sum), fbody))
   fbody = as.call(c(as.name("*"), 1/2, fbody))
   fbody = as.call(c(quote(evalq), fbody, quote(localdata)))
-  
+
   fbody = as.call(c(
     as.name("{"),
     list(quote(if (is.null(names(fpar))) names(fpar) <- names(par)),
          quote(localdata <- list2env(as.list(fpar), parent = data)),
          fbody)))
-  
+
   make_function(alist(fpar=), fbody)
 }
 
@@ -483,7 +483,7 @@ rminuit2.make.gaussian.mll = function(formula, par, data=NULL, weights=NULL, err
 #'
 #' @param ... extra arguments for the model, weights and error formulas
 #'
-#' @seealso rminuit2 rminuit2.par
+#' @seealso rminuit2 rminuit2_par
 #'
 #' @examples
 #' #
@@ -491,33 +491,34 @@ rminuit2.make.gaussian.mll = function(formula, par, data=NULL, weights=NULL, err
 #' #
 #' x = seq(0, 1, length.out=31)
 #' y.func = function(x, norm, tau) norm*exp(-x/tau)
-#' 
+#'
 #' # simulate data with Gaussian errors for specific model
 #' model.par = c(norm=2.3, tau=0.47)
 #' y.err = 0.01
 #' y = do.call(y.func, c(list(x), model.par)) + rnorm(sd=y.err, n=length(x))
-#' 
+#'
 #' # fit model on data, ask to compute Minos errors too
 #' fit.rc = rminuit2.expr.gaussian(y ~ norm*exp(-x/tau), c(norm=1, tau=10),
 #'   data=data.frame(x=x, y=y, y.err=y.err), errors=y.err, opt="hm")
-#' 
+#'
 #' # chi square / number of degrees of freedom
 #' cbind(chisq=2*fit.rc$fval, ndof=length(x) - length(model.par))
-#' 
+#'
 #' # fitted parameters and their estimated uncertainties
 #' cbind(model.value=model.par, value=fit.rc$par, error=fit.rc$err,
 #'       minos_pos=fit.rc$err_minos_pos, minos_neg=fit.rc$err_minos_neg)
-#' 
+#'
 #' # parameters' correlation matrix
 #' cov2cor(fit.rc$cov)
 #'
 #' @export
 #'
-rminuit2.expr.gaussian = function(formula, start, data=NULL, weights=NULL, errors=NULL,
+rminuit2_expr_gaussian = function(formula, start, data=NULL, weights=NULL, errors=NULL,
                                   err=NULL, lower=NULL, upper=NULL, fix=NULL, opt="h",
                                   maxcalls=0L, nsigma=1, envir=NULL, ...) {
   mll = eval(substitute(
     rminuit2.make.gaussian.mll(formula=formula, par=start, data=data, weights=weights, errors=errors)))
-  rminuit2.par(mll, start=start, err=err, lower=lower, upper=upper, fix=fix, opt=opt,
+
+  rminuit2_par(mll, start=start, err=err, lower=lower, upper=upper, fix=fix, opt=opt,
                maxcalls=maxcalls, nsigma=nsigma, envir=envir, ...)
 }
