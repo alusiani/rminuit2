@@ -430,7 +430,7 @@ make_function <- function (args, body, env = parent.frame())
 ##
 ## given a model formula, assemble minus log-likelihood for gaussian errors
 ##
-rminuit2.make.gaussian.mll <- function(formula, par, data=NULL, weights=NULL, errors=NULL) {
+rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, errors=NULL) {
   weights = substitute(weights)
   errors = substitute(errors)
 
@@ -451,7 +451,7 @@ rminuit2.make.gaussian.mll <- function(formula, par, data=NULL, weights=NULL, er
     data = withCallingHandlers(
       to_env(data, parent = environment(formula)),
       error = function(e) {
-        e$message="'data' must be a dataframe, list, or environment"
+        e$message="'data' must be a dataframe, list or environment"
         e$call = sys.call(-2)
         stop(e)
       })
@@ -527,7 +527,7 @@ rminuit2_expr_gaussian = function(formula, start, data=NULL, weights=NULL, error
                                   err=NULL, lower=NULL, upper=NULL, fix=NULL, opt="h",
                                   maxcalls=0L, nsigma=1, envir=NULL, ...) {
   mll = eval(substitute(
-    rminuit2.make.gaussian.mll(formula=formula, par=start, data=data, weights=weights, errors=errors)))
+    rminuit2_make_gaussian_mll(formula=formula, par=start, data=data, weights=weights, errors=errors)))
 
   rminuit2_par(mll, start=start, err=err, lower=lower, upper=upper, fix=fix, opt=opt,
                maxcalls=maxcalls, nsigma=nsigma, envir=envir, ...)
