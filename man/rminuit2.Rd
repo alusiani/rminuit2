@@ -38,7 +38,7 @@ the negative logarithm of a likelihood or minus-log-likelihood (MLL).}
 
 \item{nsigma}{numeric, number of standard deviations for Minos errors}
 
-\item{envir}{not used. Will possibly be used in the future as the same argument in \code{rminuit2.par}.}
+\item{envir}{not used. Will possibly be used in the future as the same argument in \code{rminuit2_par}.}
 
 \item{...}{extra arguments for the mll function.}
 }
@@ -117,7 +117,7 @@ cov2cor(fit.rc$cov)
 
 }
 \seealso{
-rminuit2.par
+rminuit2_par
 }
 \author{
 Alberto Lusiani, \email{alusiani@gmail.com}

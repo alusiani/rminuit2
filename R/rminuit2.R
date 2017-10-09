@@ -380,10 +380,15 @@ rminuit2_par <- function(mll, start, err=NULL, lower=NULL, upper=NULL, fix=NULL,
 }
 
 ##
+## check if error return code
+##
+is.error <- function(x) inherits(x, "try-error")
+
+##
 ## copied from package pryr
 ## convert argument to environment
 ##
-to_env <- function(x, quiet = FALSE) {
+to_env <- function(x, parent = parent.frame(), quiet = FALSE) {
   if (is.environment(x)) {
     x
   } else if (is.list(x)) {
@@ -435,16 +440,21 @@ rminuit2.make.gaussian.mll <- function(formula, par, data=NULL, weights=NULL, er
     residexpr <- call("-", formula[[2]], formula[[3]])
   } else stop("Unrecognized formula")
 
+  ##--- name parameters p<n> if unnamed
   if (is.null(names(par)))
-    names(par) <- paste0("p_", seq_along(par))
+    names(par) <- paste0("p", seq_along(par))
 
   if (is.null(data)) {
     ##--- if no data, get from parent frame
     data <- environment(formula)
-  } else if (is.list(data)) {
-    data <- list2env(data, parent = environment(formula))
-  } else if (!is.environment(data)) {
-    stop("'data' must be a dataframe, list, or environment")
+  } else {
+    data = withCallingHandlers(
+      to_env(data, parent = environment(formula)),
+      error = function(e) {
+        e$message="'data' must be a dataframe, list, or environment"
+        e$call = sys.call(-2)
+        stop(e)
+      })
   }
 
   if (!is.null(errors)) fbody = as.call(c(as.name("/"), residexpr, errors))
@@ -498,7 +508,7 @@ rminuit2.make.gaussian.mll <- function(formula, par, data=NULL, weights=NULL, er
 #' y = do.call(y.func, c(list(x), model.par)) + rnorm(sd=y.err, n=length(x))
 #'
 #' # fit model on data, ask to compute Minos errors too
-#' fit.rc = rminuit2.expr.gaussian(y ~ norm*exp(-x/tau), c(norm=1, tau=10),
+#' fit.rc = rminuit2_expr_gaussian(y ~ norm*exp(-x/tau), c(norm=1, tau=10),
 #'   data=data.frame(x=x, y=y, y.err=y.err), errors=y.err, opt="hm")
 #'
 #' # chi square / number of degrees of freedom
