@@ -247,11 +247,10 @@ Rcpp::List rminuit2_cpp(
     }
   }
 
-  // Rcout << "minimum: " << min << std::endl;
-
+  //--- get covariance with caution (nrow=0 when invalid)
   Rcpp::NumericMatrix par_cov(npar_nonfixed, npar_nonfixed);
-  for(unsigned int i=0; i<npar_nonfixed; i++) {
-    for(unsigned int j=0; j<npar_nonfixed; j++) {
+  for(unsigned int i=0; i<npar_nonfixed && i<min.UserCovariance().Nrow(); i++) {
+    for(unsigned int j=0; j<npar_nonfixed && j<min.UserCovariance().Nrow(); j++) {
       par_cov(i, j) = min.UserCovariance()(i, j);
     }
   }
