@@ -52,6 +52,8 @@
 #'    \item{\code{HesseFailed}:}{TRUE if the numeric computation of the HESSE matrix failed}
 #'  }
 #'
+#' @seealso rminuit2_par
+#'
 #' @examples
 #'
 #' #
@@ -105,7 +107,6 @@
 #' @importFrom methods hasArg
 #' @importFrom stats setNames
 #'
-#' @seealso rminuit2_par
 #' @export
 #'
 rminuit2 <- function(mll, start = formals(mll), err=NULL, lower=NULL, upper=NULL, fix=NULL, opt="h",
@@ -184,6 +185,32 @@ rminuit2 <- function(mll, start = formals(mll), err=NULL, lower=NULL, upper=NULL
 #' @param ... extra arguments for the mll function, it the mll function is implemented in R.
 #'   If the mll function is implemented in C++ then the extra arguments
 #'   should be passed to it using the \code{envir} argument instead.
+#'
+#' @return A list with the following components:
+#'  \describe{
+#'    \item{\code{fval}:}{Value of function at found minimum (1/2 * chi square if the function is the negative log-likelihood of a Gaussian  likelihood.}
+#'    \item{\code{Edm}:}{Estimated distance from the value of the function true minimum}
+#'    \item{\code{par}:}{Fitted parameters}
+#'    \item{\code{err}:}{Estimated uncertainties of fitted parameters}
+#'    \item{\code{cov}:}{Covariance matrix of the fitted parameters}
+#'    \item{\code{err_minos_pos}:}{Minos-estimated positive parameters' uncertainties (if Minos errors were requested)}
+#'    \item{\code{err_minos_neg}:}{Minos-estimated negative parameters' uncertainties (if Minos errors requested)}
+#'    \item{\code{err_minos_pos_valid}:}{boolean vector, TRUE if Minos positive uncertainties are valid (if Minos errors were requested)}
+#'    \item{\code{err_minos_neg_valid}:}{boolean vector, TRUE if Minos negative uncertainties are valid (if Minos errors were requested)}
+#'    \item{\code{allOK}:}{TRUE if the fit converged and the parameters and their covariance are OK}
+#'    \item{\code{MinosErrorsValid}:}{TRUE if the MINOS errors are all valid}
+#'    \item{\code{IsValid}:}{TRUE if the fit minimization converged}
+#'    \item{\code{IsValidFirstInvocation}:}{TRUE if Minuit strategy 1 succeeded (if it failed Minuit2 strategy 2 is performed)}
+#'    \item{\code{IsAboveMaxEdm}:}{TRUE if the estimated distance from the true minimum is above the tolerance}
+#'    \item{\code{HasReachedCallLimit}:}{TRUE if the maximum call limit was exceeded}
+#'    \item{\code{HasValidParameters}:}{TRUE if the fitted parameters are considered valid}
+#'    \item{\code{HasCovariance}:}{TRUE if a covariance matrix is returned}
+#'    \item{\code{HasValidCovariance}:}{TRUE if the estimated covariance matrix is considered valid}
+#'    \item{\code{HasAccurateCovar}:}{TRUE if the accuracy of the estimated covariance matrix is considered valid}
+#'    \item{\code{HasPosDefCovar}:}{TRUE if the numerically computed covariance matrix is positive definite}
+#'    \item{\code{HasMadePosDefCovar}:}{TRUE if the covariance matrix has been adjusted to make it positive definite}
+#'    \item{\code{HesseFailed}:}{TRUE if the numeric computation of the HESSE matrix failed}
+#'  }
 #'
 #' @seealso rminuit2
 #'
@@ -417,6 +444,17 @@ all_named <- function(x) {
 
 ##
 ## copied from package pryr
+## make a call
+##
+function (f, ..., .args = list()) 
+{
+    if (is.character(f)) 
+        f <- as.name(f)
+    as.call(c(f, ..., .args))
+}
+
+##
+## copied from package pryr
 ## make a function
 ##
 make_function <- function (args, body, env = parent.frame())
@@ -436,8 +474,10 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
 
   if (length(formula) == 2) {
     residexpr <- formula[[2]]
+    fun_expr = NULL
   } else if (length(formula) == 3) {
-    residexpr <- call("-", formula[[2]], formula[[3]])
+    residexpr <- call("-", formula[[2L]], formula[[3L]])
+    fun_expr = formula[[3L]]
   } else stop("Unrecognized formula")
 
   ##--- name parameters p<n> if unnamed
@@ -452,25 +492,62 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
       to_env(data, parent = environment(formula)),
       error = function(e) {
         e$message="'data' must be a dataframe, list or environment"
-        e$call = sys.call(-2)
+        e$call = sys.call(-3)
         stop(e)
       })
   }
 
-  if (!is.null(errors)) fbody = as.call(c(as.name("/"), residexpr, errors))
-  if (!is.null(weights)) fbody = as.call(c(as.name("*"), fbody, weights))
+  ##--- assemble body of mll function using formula, weights and errors expressions
+  fbody = residexpr
+  if (!is.null(errors)) fbody = as.call(c(as.name("/"), fbody, errors))
   fbody = as.call(c(as.name("^"), fbody, 2))
+  if (!is.null(weights)) fbody = as.call(c(as.name("*"), fbody, weights))
   fbody = as.call(c(quote(sum), fbody))
   fbody = as.call(c(as.name("*"), 1/2, fbody))
-  fbody = as.call(c(quote(evalq), fbody, quote(localdata)))
+  
+  fbody = as.call(c(
+    as.name("{"),
+    list(
+      bquote(if (is.null(names(par))) names(par) <- .(names(par))),
+      quote(mapply(function(name, val) assign(name, val, pos=parent.frame(2)), names(par), par)),
+      fbody)))
+
+  data$fbody = fbody
+  ## mll_fun = evalq(make_function(alist(par=), fbody), envir=data)
+  ## 
+  ## could not find a way with make_function to set arg initialized to named numeric vector
+  ## so resort to building text and parsing it
+  ##
+  mll_txt = paste0("make_function(alist(par=c(",
+                   paste0(names(par), "=", par, collapse=", "),
+                   ")), fbody)")
+  mll_fun = eval(parse(text=mll_txt), envir=data)
+  rm(fbody, envir=data)
+
+  fun_args = setdiff(all.vars(fun_expr), names(par))
 
   fbody = as.call(c(
     as.name("{"),
-    list(quote(if (is.null(names(fpar))) names(fpar) <- names(par)),
-         quote(localdata <- list2env(as.list(fpar), parent = data)),
-         fbody)))
+    list(
+      bquote(if (is.null(names(par))) names(par) <- .(names(par))),
+      quote(mapply(function(name, val) assign(name, val, pos=parent.frame(2)), names(par), par)),
+      fun_expr)))
 
-  make_function(alist(fpar=), fbody)
+  if (is.null(fun_expr)) return(list(mll=mll_fun))
+
+  fun_txt = paste0("make_function(alist(",
+                   paste0(fun_args, "=", collapse=", "),
+                   ", par=c(", paste0(names(par), "=", par, collapse=", "),
+                   ")), fbody)")
+  model_fun_par = eval(parse(text=fun_txt))
+
+  fun_txt = paste0("make_function(alist(",
+                   paste0(fun_args, "=", collapse=", "),
+                   ", ", paste0(names(par), "=", par, collapse=", "),
+                   "), fun_expr)")
+  model_fun = eval(parse(text=fun_txt))
+
+  list(mll=mll_fun, fun=model_fun, fun_par=model_fun_par)
 }
 
 #' Function Minimization with Minuit2
@@ -492,6 +569,34 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
 #' @param errors formula corresponding to the uncertaintites of the data observations
 #'
 #' @param ... extra arguments for the model, weights and error formulas
+#'
+#' @return A list with the following components:
+#'  \describe{
+#'    \item{\code{fval}:}{Value of function at found minimum (1/2 * chi square if the function is the negative log-likelihood of a Gaussian  likelihood.}
+#'    \item{\code{Edm}:}{Estimated distance from the value of the function true minimum}
+#'    \item{\code{par}:}{Fitted parameters}
+#'    \item{\code{err}:}{Estimated uncertainties of fitted parameters}
+#'    \item{\code{cov}:}{Covariance matrix of the fitted parameters}
+#'    \item{\code{err_minos_pos}:}{Minos-estimated positive parameters' uncertainties (if Minos errors were requested)}
+#'    \item{\code{err_minos_neg}:}{Minos-estimated negative parameters' uncertainties (if Minos errors requested)}
+#'    \item{\code{err_minos_pos_valid}:}{boolean vector, TRUE if Minos positive uncertainties are valid (if Minos errors were requested)}
+#'    \item{\code{err_minos_neg_valid}:}{boolean vector, TRUE if Minos negative uncertainties are valid (if Minos errors were requested)}
+#'    \item{\code{fun}:}{function corresponding to model with parameters initialized to the fitted values}
+#'    \item{\code{fun_par}:}{function corresponding to model with parameters initialized to the fitted values, all parameters are passed as a possibly-named numeric vector in the last argument, which is named \code{par}}
+#'    \item{\code{allOK}:}{TRUE if the fit converged and the parameters and their covariance are OK}
+#'    \item{\code{MinosErrorsValid}:}{TRUE if the MINOS errors are all valid}
+#'    \item{\code{IsValid}:}{TRUE if the fit minimization converged}
+#'    \item{\code{IsValidFirstInvocation}:}{TRUE if Minuit strategy 1 succeeded (if it failed Minuit2 strategy 2 is performed)}
+#'    \item{\code{IsAboveMaxEdm}:}{TRUE if the estimated distance from the true minimum is above the tolerance}
+#'    \item{\code{HasReachedCallLimit}:}{TRUE if the maximum call limit was exceeded}
+#'    \item{\code{HasValidParameters}:}{TRUE if the fitted parameters are considered valid}
+#'    \item{\code{HasCovariance}:}{TRUE if a covariance matrix is returned}
+#'    \item{\code{HasValidCovariance}:}{TRUE if the estimated covariance matrix is considered valid}
+#'    \item{\code{HasAccurateCovar}:}{TRUE if the accuracy of the estimated covariance matrix is considered valid}
+#'    \item{\code{HasPosDefCovar}:}{TRUE if the numerically computed covariance matrix is positive definite}
+#'    \item{\code{HasMadePosDefCovar}:}{TRUE if the covariance matrix has been adjusted to make it positive definite}
+#'    \item{\code{HesseFailed}:}{TRUE if the numeric computation of the HESSE matrix failed}
+#'  }
 #'
 #' @seealso rminuit2 rminuit2_par
 #'
@@ -526,9 +631,28 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
 rminuit2_expr_gaussian = function(formula, start, data=NULL, weights=NULL, errors=NULL,
                                   err=NULL, lower=NULL, upper=NULL, fix=NULL, opt="h",
                                   maxcalls=0L, nsigma=1, envir=NULL, ...) {
-  mll = eval(substitute(
+  rc = eval(substitute(
     rminuit2_make_gaussian_mll(formula=formula, par=start, data=data, weights=weights, errors=errors)))
 
-  rminuit2_par(mll, start=start, err=err, lower=lower, upper=upper, fix=fix, opt=opt,
-               maxcalls=maxcalls, nsigma=nsigma, envir=envir, ...)
+  rc.fit = rminuit2_par(rc$mll, start=start, err=err, lower=lower, upper=upper, fix=fix, opt=opt,
+                    maxcalls=maxcalls, nsigma=nsigma, envir=envir, ...)
+  
+  ##--- build function with parameters set to fitted values
+  fun_args = names(formals(rc$fun_par))
+  formals_txt = paste0("formals(rc$fun_par) = alist(",
+         paste0(fun_args[fun_args != "par"], "=", collapse=", "),
+         ", par=c(", paste0(names(rc.fit$par), "=", rc.fit$par, collapse=", "),
+         "))")
+  eval(parse(text=formals_txt))
+
+  ##--- build function with parameters set to fitted values
+  fun_args = names(formals(rc$fun_par))
+  fun_args_symbol = sapply(formals(rc$fun_par), is.symbol)
+  formals_txt = paste0("formals(rc$fun) = alist(",
+         paste0(fun_args[fun_args_symbol], "=", collapse=", "),
+         ", ", paste0(names(rc.fit$par), "=", rc.fit$par, collapse=", "),
+         ")")
+  eval(parse(text=formals_txt))
+
+  c(rc.fit, fun=rc$fun, fun_par=rc$fun_par)
 }
