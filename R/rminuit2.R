@@ -378,3 +378,146 @@ rminuit2.par <- function(mll, start, err=NULL, lower=NULL, upper=NULL, fix=NULL,
 
   return(rc)
 }
+
+##
+## copied from package pryr
+## covert to environment
+##
+to_env <- function(x, quiet = FALSE) {
+  if (is.environment(x)) {
+    x
+  } else if (is.list(x)) {
+    list2env(x)
+  } else if (is.function(x)) {
+    environment(x)
+  } else if (length(x) == 1 && is.character(x)) {
+    if (!quiet) message("Using environment ", x)
+    as.environment(x)
+  } else if (length(x) == 1 && is.numeric(x) && x > 0) {
+    if (!quiet) message("Using environment ", search()[x])
+    as.environment(x)
+  } else {
+    stop("Input can not be coerced to an environment", call. = FALSE)
+  }
+}
+
+##
+## copied from package pryr
+## check if all elements are named with no empty strings
+##
+all_named <- function(x) {
+  if (length(x) == 0) return(TRUE)
+  !is.null(names(x)) && all(names(x) != "")
+}
+
+##
+## copied from package pryr
+## make a function
+##
+make_function = function (args, body, env = parent.frame()) 
+{
+    args <- as.pairlist(args)
+    stopifnot(all_named(args), is.language(body))
+    env <- to_env(env)
+    eval(call("function", args, body), env)
+}
+
+##
+## given a model formula, assemble minus log-likelihood for gaussian errors
+##
+rminuit2.make.gaussian.mll = function(formula, par, data=NULL, weights=NULL, errors=NULL) {
+  weights = substitute(weights)
+  errors = substitute(errors)
+  
+  if (length(formula) == 2) {
+    residexpr <- formula[[2]]
+  } else if (length(formula) == 3) {
+    residexpr <- call("-", formula[[2]], formula[[3]])
+  } else stop("Unrecognized formula")
+ 
+  if (is.null(names(par)))
+    names(par) <- paste0("p_", seq_along(par))
+  
+  if (is.null(data)) {
+    ##--- if no data, get from parent frame
+    data <- environment(formula)
+  } else if (is.list(data)) {
+    data <- list2env(data, parent = environment(formula))
+  } else if (!is.environment(data)) {
+    stop("'data' must be a dataframe, list, or environment")
+  }
+  
+  if (!is.null(errors)) fbody = as.call(c(as.name("/"), residexpr, errors))
+  if (!is.null(weights)) fbody = as.call(c(as.name("*"), fbody, weights))
+  fbody = as.call(c(as.name("^"), fbody, 2))
+  fbody = as.call(c(quote(sum), fbody))
+  fbody = as.call(c(as.name("*"), 1/2, fbody))
+  fbody = as.call(c(quote(evalq), fbody, quote(localdata)))
+  
+  fbody = as.call(c(
+    as.name("{"),
+    list(quote(if (is.null(names(fpar))) names(fpar) <- names(par)),
+         quote(localdata <- list2env(as.list(fpar), parent = data)),
+         fbody)))
+  
+  make_function(alist(fpar=), fbody)
+}
+
+#' Function Minimization with Minuit2
+#'
+#' Fit data to a model performing minus log-likelihood minimization using
+#' \href{https://project-mathlibs.web.cern.ch/project-mathlibs/sw/Minuit2/html/index.html}{Minuit2}
+#' and assuming Gaussian uncertainties
+#'
+#' @inherit rminuit2
+#'
+#' @param formula expression describing the model to be fitted to data
+#'
+#' @param start initial values of the model parameters to be fitted
+#'
+#' @param data list or data.frame containing the data to be fitted to the model
+#'
+#' @param weights formula corresponding to weights to assign to the data observations
+#'
+#' @param errors formula corresponding to the uncertaintites of the data observations
+#'
+#' @param ... extra arguments for the model, weights and error formulas
+#'
+#' @seealso rminuit2 rminuit2.par
+#'
+#' @examples
+#' #
+#' # simulate model y = a*exp(-x/b)
+#' #
+#' x = seq(0, 1, length.out=31)
+#' y.func = function(x, norm, tau) norm*exp(-x/tau)
+#' 
+#' # simulate data with Gaussian errors for specific model
+#' model.par = c(norm=2.3, tau=0.47)
+#' y.err = 0.01
+#' y = do.call(y.func, c(list(x), model.par)) + rnorm(sd=y.err, n=length(x))
+#' 
+#' # fit model on data, ask to compute Minos errors too
+#' fit.rc = rminuit2.expr.gaussian(y ~ norm*exp(-x/tau), c(norm=1, tau=10),
+#'   data=data.frame(x=x, y=y, y.err=y.err), errors=y.err, opt="hm")
+#' 
+#' # chi square / number of degrees of freedom
+#' cbind(chisq=2*fit.rc$fval, ndof=length(x) - length(model.par))
+#' 
+#' # fitted parameters and their estimated uncertainties
+#' cbind(model.value=model.par, value=fit.rc$par, error=fit.rc$err,
+#'       minos_pos=fit.rc$err_minos_pos, minos_neg=fit.rc$err_minos_neg)
+#' 
+#' # parameters' correlation matrix
+#' cov2cor(fit.rc$cov)
+#'
+#' @export
+#'
+rminuit2.expr.gaussian = function(formula, start, data=NULL, weights=NULL, errors=NULL,
+                                  err=NULL, lower=NULL, upper=NULL, fix=NULL, opt="h",
+                                  maxcalls=0L, nsigma=1, envir=NULL, ...) {
+  mll = eval(substitute(
+    rminuit2.make.gaussian.mll(formula=formula, par=start, data=data, weights=weights, errors=errors)))
+  rminuit2.par(mll, start=start, err=err, lower=lower, upper=upper, fix=fix, opt=opt,
+               maxcalls=maxcalls, nsigma=nsigma, envir=envir, ...)
+}
