@@ -5,10 +5,14 @@ PKG_LIBS = $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS) $(SHLIB_OPENMP_CXXFLAGS)
 
 CXX_STD = CXX11
 
+PKG_CPPFLAGS = -I../inst/include
+
+##--- may add as CPPFLAGS="$(CPPFLAGS) $(CPPFLAGS_ADD)"
+CPPFLAGS_ADD = $(shell R CMD config --cppflags) $(shell Rscript -e "Rcpp:::CxxFlags()")
+
 ##--- -fno-gnu-unique allows reloading in Linux
 PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS) -fno-gnu-unique
 
-PKG_CPPFLAGS = -I../inst/include
 PKG_LIBS = -L../inst/lib -Wl,-Bstatic -lMinuit2 -Wl,-Bdynamic
 
 .PHONY: all minuit2 preclean
@@ -18,10 +22,11 @@ all: minuit2 $(SHLIB) preclean
 $(SHLIB): minuit2
 
 minuit2:
-	echo PKG_LIBS $(PKG_LIBS)
-	echo PKG_CXXFLAGS $(PKG_CXXFLAGS)
+	@echo PKG_LIBS $(PKG_LIBS)
+	@echo PKG_CPPFLAGS $(PKG_CPPFLAGS)
+	@echo PKG_CXXFLAGS $(PKG_CXXFLAGS)
 	(cd minuit2-alu && $(MAKE) CXX="$(CXX11) $(CXX11STD)" CXXFLAGS="$(CXX11FLAGS) $(CXX11PICFLAGS)")
-	(cd minuit2-alu && make install DESTDIR=$(PWD)/../inst)
+	(cd minuit2-alu && $(MAKE) install DESTDIR=$(PWD)/../inst)
 
 preclean: $(SHLIB)
 	$(RM) -rf ../inst

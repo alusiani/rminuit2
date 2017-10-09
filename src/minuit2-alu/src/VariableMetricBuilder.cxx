@@ -7,6 +7,8 @@
  *                                                                    *
  **********************************************************************/
 
+#include "assert_throw.h"
+
 #include "Minuit2/VariableMetricBuilder.h"
 #include "Minuit2/GradientCalculator.h"
 #include "Minuit2/MinimumState.h"
@@ -264,7 +266,12 @@ FunctionMinimum VariableMetricBuilder::Minimum(const MnFcn& fcn, const GradientC
    MnAlgebraicVector prevStep(initialState.Gradient().Vec().size());
 
    MinimumState s0 = result.back();
+
+#ifndef assert_throw_h
    assert(s0.IsValid() ); 
+#else   
+   assert_throw(s0.IsValid(), "fatal, invalid minimum status");
+#endif
 
    do {
 
