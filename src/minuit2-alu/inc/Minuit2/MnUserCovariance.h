@@ -10,9 +10,13 @@
 #ifndef ROOT_Minuit2_MnUserCovariance
 #define ROOT_Minuit2_MnUserCovariance
 
+#include "assert_throw.h"
+
 #include "Minuit2/MnConfig.h"
 #include <vector>
 #include <cassert>
+#include <stdexcept>
+#include <string>
 
 namespace ROOT {
 
@@ -33,7 +37,11 @@ public:
    // safe constructor using std::vector
   MnUserCovariance(const std::vector<double>& data, unsigned int nrow) :
     fData(data), fNRow(nrow) {
+#ifndef assert_throw_h
     assert(data.size() == nrow*(nrow+1)/2);
+#else
+    assert_throw(data.size() == nrow*(nrow+1)/2, "fatal, MnUserCovariance() data has wrong size");
+#endif
   }
 
    // unsafe constructor using just a pointer
@@ -58,7 +66,11 @@ public:
   }
 
   double operator()(unsigned int row, unsigned int col) const {
+#ifndef assert_throw_h
     assert(row < fNRow && col < fNRow);
+#else
+    assert_throw(row < fNRow && col < fNRow, "fatal, MnUserCovariance(), row/col > nrow = " + std::to_string(fNRow));
+#endif
     if(row > col)
       return fData[col+row*(row+1)/2];
     else
@@ -66,7 +78,11 @@ public:
   }
 
   double& operator()(unsigned int row, unsigned int col) {
+#ifndef assert_throw_h
     assert(row < fNRow && col < fNRow);
+#else
+    assert_throw(row < fNRow && col < fNRow, "fatal, MnUserCovariance(), row/col > nrow =" + std::to_string(fNRow));
+#endif
     if(row > col)
       return fData[col+row*(row+1)/2];
     else
