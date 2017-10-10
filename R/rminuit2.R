@@ -572,9 +572,9 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
   if (is.null(fun_expr))
     return(
       list(
-        nobs=nobs,
-        mll=mll_fun,
-        pulls_fun=pulls_fun
+        nobs = nobs,
+        fun_mll = mll_fun,
+        fun_pulls = pulls_fun
       ))
 
   ##
@@ -634,11 +634,11 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
 
   ##--- return mll function and model function in two formats
   invisible(list(
-    nobs=nobs,
-    mll=mll_fun,
-    pulls_fun=pulls_fun,
-    fun=model_fun,
-    fun_par=model_fun_par
+    nobs = nobs,
+    fun_mll = mll_fun,
+    fun_pulls = pulls_fun,
+    fun = model_fun,
+    fun_par = model_fun_par
     ))
 }
 
@@ -735,7 +735,7 @@ rminuit2_expr_gaussian = function(formula, start, data=NULL, weights=NULL, error
   rc = eval(substitute(
     rminuit2_make_gaussian_mll(formula=formula, par=start, data=data, weights=weights, errors=errors, rhs_vars=rhs_vars, ...)))
 
-  rc.fit = rminuit2_par(rc$mll, start=start, err=err, lower=lower, upper=upper, fix=fix, opt=opt,
+  rc.fit = rminuit2_par(mll=rc$fun_mll, start=start, err=err, lower=lower, upper=upper, fix=fix, opt=opt,
                         maxcalls=maxcalls, nsigma=nsigma, envir=envir, ...)
 
   ##--- build function with parameters set to fitted values, all parameters passer in one numeric vector
