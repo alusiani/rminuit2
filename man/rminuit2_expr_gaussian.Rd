@@ -88,19 +88,23 @@ and assuming Gaussian uncertainties
 }
 \examples{
 #
-# simulate model y = a*exp(-x/b)
+# simulate model y = a*exp(-x/b) + k
 #
 x = seq(0, 1, length.out=31)
-y.func = function(x, norm, tau) norm*exp(-x/tau)
+y.func = function(x, norm, tau, const) norm*exp(-x/tau) + const
 
+#
 # simulate data with Gaussian errors for specific model
+# the model includes norm and tau but not const, which is a fixed parameter
+#
 model.par = c(norm=2.3, tau=0.47)
+model.extra.const = 4.7
 y.err = 0.01
-y = do.call(y.func, c(list(x), model.par)) + rnorm(sd=y.err, n=length(x))
+y = do.call(y.func, c(list(x), model.par, const=model.extra.const)) + rnorm(sd=y.err, n=length(x))
 
 # fit model on data, ask to compute Minos errors too
-fit.rc = rminuit2_expr_gaussian(y ~ norm*exp(-x/tau), c(norm=1, tau=10),
-  data=data.frame(x=x, y=y, y.err=y.err), errors=y.err, opt="hm")
+fit.rc = rminuit2_expr_gaussian(y ~ norm*exp(-x/tau) + const, c(norm=1, tau=10),
+  data=data.frame(x=x, y=y, y.err=y.err), errors=y.err, opt="hm", const=model.extra.const)
 
 # chi square / number of degrees of freedom
 cbind(chisq=2*fit.rc$fval, ndof=length(x) - length(model.par))

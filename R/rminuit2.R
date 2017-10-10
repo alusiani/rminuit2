@@ -447,9 +447,9 @@ all_named <- function(x) {
 ## copied from package pryr
 ## make a call
 ##
-make_call <- function (f, ..., .args = list()) 
+make_call <- function (f, ..., .args = list())
 {
-    if (is.character(f)) 
+    if (is.character(f))
         f <- as.name(f)
     as.call(c(f, ..., .args))
 }
@@ -469,7 +469,7 @@ make_function <- function (args, body, env = parent.frame())
 ##
 ## given a model formula, assemble minus log-likelihood for gaussian errors
 ##
-rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, errors=NULL, rhs_vars=NULL) {
+rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, errors=NULL, rhs_vars=NULL, ...) {
   weights = substitute(weights)
   errors = substitute(errors)
 
@@ -507,7 +507,7 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
   if (!is.null(weights)) fbody = as.call(c(as.name("*"), fbody, weights))
   fbody = as.call(c(quote(sum), fbody))
   fbody = as.call(c(as.name("*"), 1/2, fbody))
-  
+
   fbody = as.call(c(
     as.name("{"),
     list(
@@ -518,14 +518,19 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
 
   ##
   ## (memo) mll_fun = evalq(make_function(alist(par=), fbody), envir=data)
-  ## 
+  ##
   ## could not find a way with make_function to set arg initialized to named numeric vector
   ## so resort to building text and parsing it
   ##
   data$fbody = fbody
-  mll_txt = paste0("make_function(alist(par=c(",
-                   paste0(names(par), "=", par, collapse=", "),
-                   ")), fbody)")
+  mll_txt = paste0("make_function(alist(",
+                   paste(paste0("par=c(",
+                                paste0(names(par), "=", par, collapse=", "),
+                                ")"),
+                         paste0(names(list(...)), "=", sapply(list(...), as.character), collapse=", "
+                                ),
+                         sep=", "),
+                   "), fbody)")
   mll_fun = eval(parse(text=mll_txt), envir=data)
   rm(fbody, envir=data)
 
@@ -541,16 +546,21 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
     )))
 
   ##
-  ## (memo) mll_fun = evalq(make_function(alist(par=), fbody), envir=data)
-  ## 
+  ## (memo) pulls_fun = evalq(make_function(alist(par=), fbody), envir=data)
+  ##
   ## could not find a way with make_function to set arg initialized to named numeric vector
   ## so resort to building text and parsing it
   ##
   data$fbody = fbody
-  pulls_txt = paste0("make_function(alist(par=c(",
-                   paste0(names(par), "=", par, collapse=", "),
-                   ")), fbody)")
-  pulls_fun = eval(parse(text=mll_txt), envir=data)
+  pulls_txt = paste0("make_function(alist(",
+                     paste(paste0("par=c(",
+                                  paste0(names(par), "=", par, collapse=", "),
+                                  ")"),
+                           paste0(names(list(...)), "=", sapply(list(...), as.character), collapse=", "
+                                  ),
+                           sep=", "),
+                     "), fbody)")
+  pulls_fun = eval(parse(text=pulls_txt), envir=data)
   rm(fbody, envir=data)
 
   ##--- number of observations
@@ -578,13 +588,14 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
     ## all.vars(formula) does not return variables that are initialized
     ## brute force procedure to get rid of all (or most) initializations
     ## - one possible failure: variables initialized with expressions containing parenthesis
-    ## 
+    ##
     fun_expr_str = gsub("\\s+", " ", paste(deparse(fun_expr), collapse=""))
     fun_expr_str = gsub("\\s*=\\s*[[:alnum:]._+*/^-]+", "", fun_expr_str)
     fun_args = all.vars(parse(text=fun_expr_str))
   }
 
-  fun_args = setdiff(fun_args, names(par))
+  fun_args = setdiff(fun_args, c(names(par), names(list(...))))
+  
   fbody = as.call(c(
     as.name("{"),
     list(
@@ -595,18 +606,29 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
   ##
   ## if formula is of type "y ~ f(x, par)" then it is possible to get f(x, par)
   ## therefore return to caller f(x, par) in two formats
-  ## - fun_par(x, par) where all parameters are passer in a single numeric vector
-  ## - fun(x, p1, p2, ...) where the parameters are passed one per argument
+  ## - fun_par(x, par, non_fitted_par) where all parameters are passed in a single numeric vector
+  ## - fun(x, p1, p2, non_fitted_par) where the parameters are passed one per argument
+  ##
+  
+  ##
+  ## define model function with fit parameters one numeric vector
   ##
   fun_txt = paste0("make_function(alist(",
-                   paste0(fun_args, "=", collapse=", "),
-                   ", par=c(", paste0(names(par), "=", par, collapse=", "),
-                   ")), fbody)")
+                   paste(paste0(fun_args, "=", collapse=", "),
+                         paste0("par=c(", paste0(names(par), "=", par, collapse=", "), ")"),
+                         paste0(names(list(...)), "=", sapply(list(...), as.character), collapse=", "),
+                         sep=", "),
+                   "), fbody)")
   model_fun_par = eval(parse(text=fun_txt))
 
+  ##
+  ## define model function with fit parameters in separate args
+  ##
   fun_txt = paste0("make_function(alist(",
-                   paste0(fun_args, "=", collapse=", "),
-                   ", ", paste0(names(par), "=", par, collapse=", "),
+                   paste(paste0(fun_args, "=", collapse=", "),
+                         paste0(names(par), "=", par, collapse=", "),
+                         paste0(names(list(...)), "=", sapply(list(...), as.character), collapse=", "),
+                         sep=", "),
                    "), fun_expr)")
   model_fun = eval(parse(text=fun_txt))
 
@@ -677,19 +699,23 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
 #'
 #' @examples
 #' #
-#' # simulate model y = a*exp(-x/b)
+#' # simulate model y = a*exp(-x/b) + k
 #' #
 #' x = seq(0, 1, length.out=31)
-#' y.func = function(x, norm, tau) norm*exp(-x/tau)
+#' y.func = function(x, norm, tau, const) norm*exp(-x/tau) + const
 #'
+#' #
 #' # simulate data with Gaussian errors for specific model
+#' # the model includes norm and tau but not const, which is a fixed parameter
+#' #
 #' model.par = c(norm=2.3, tau=0.47)
+#' model.extra.const = 4.7
 #' y.err = 0.01
-#' y = do.call(y.func, c(list(x), model.par)) + rnorm(sd=y.err, n=length(x))
+#' y = do.call(y.func, c(list(x), model.par, const=model.extra.const)) + rnorm(sd=y.err, n=length(x))
 #'
 #' # fit model on data, ask to compute Minos errors too
-#' fit.rc = rminuit2_expr_gaussian(y ~ norm*exp(-x/tau), c(norm=1, tau=10),
-#'   data=data.frame(x=x, y=y, y.err=y.err), errors=y.err, opt="hm")
+#' fit.rc = rminuit2_expr_gaussian(y ~ norm*exp(-x/tau) + const, c(norm=1, tau=10),
+#'   data=data.frame(x=x, y=y, y.err=y.err), errors=y.err, opt="hm", const=model.extra.const)
 #'
 #' # chi square / number of degrees of freedom
 #' cbind(chisq=2*fit.rc$fval, ndof=length(x) - length(model.par))
@@ -707,31 +733,42 @@ rminuit2_expr_gaussian = function(formula, start, data=NULL, weights=NULL, error
                                   err=NULL, lower=NULL, upper=NULL, fix=NULL, opt="h",
                                   maxcalls=0L, nsigma=1, rhs_vars=NULL, envir=NULL, ...) {
   rc = eval(substitute(
-    rminuit2_make_gaussian_mll(formula=formula, par=start, data=data, weights=weights, errors=errors, rhs_vars=rhs_vars)))
-  
+    rminuit2_make_gaussian_mll(formula=formula, par=start, data=data, weights=weights, errors=errors, rhs_vars=rhs_vars, ...)))
+
   rc.fit = rminuit2_par(rc$mll, start=start, err=err, lower=lower, upper=upper, fix=fix, opt=opt,
                         maxcalls=maxcalls, nsigma=nsigma, envir=envir, ...)
-  
-  ##--- build function with parameters set to fitted values
-  fun_args = names(formals(rc$fun_par))
-  formals_txt = paste0("formals(rc$fun_par) = alist(",
-         paste0(fun_args[fun_args != "par"], "=", collapse=", "),
-         ", par=c(", paste0(names(rc.fit$par), "=", rc.fit$par, collapse=", "),
-         "))")
+
+  ##--- build function with parameters set to fitted values, all parameters passer in one numeric vector
+  fun_args = formals(rc$fun_par)
+
+  formals_txt = paste0(
+    "formals(rc$fun_par) = alist(",
+    paste0(ifelse(
+      names(fun_args) == "par",
+      paste0(names(fun_args), "=c(", paste0(names(rc.fit$par), "=", rc.fit$par, collapse=", "), ")"),
+      paste0(names(fun_args), "=", fun_args)),
+      collapse=", "),
+    ")")
+
   eval(parse(text=formals_txt))
 
-  ##--- build function with parameters set to fitted values
-  fun_args = names(formals(rc$fun_par))
-  fun_args_symbol = sapply(formals(rc$fun_par), is.symbol)
-  formals_txt = paste0("formals(rc$fun) = alist(",
-         paste0(fun_args[fun_args_symbol], "=", collapse=", "),
-         ", ", paste0(names(rc.fit$par), "=", rc.fit$par, collapse=", "),
-         ")")
+  ##--- build function with parameters set to fitted values, each parameter is passed on one arg
+  fun_args = formals(rc$fun)
+
+  formals_txt = paste0(
+    "formals(rc$fun) = alist(",
+    paste0(ifelse(
+      names(fun_args) %in% names(rc.fit$par),
+      paste0(names(fun_args), "=", rc.fit$par[names(fun_args)]),
+      paste0(names(fun_args), "=", fun_args)),
+      collapse=", "),
+    ")")
+  
   eval(parse(text=formals_txt))
 
   ##--- number of degrees of freedom
   ndof = rc$nobs - length(start) + sum(fix != 0)
-  
+
   invisible(c(
     rc.fit,
     ndof=ndof,
