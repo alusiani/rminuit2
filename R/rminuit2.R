@@ -473,6 +473,10 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
   weights = substitute(weights)
   errors = substitute(errors)
 
+  if (length(par) == 0) {
+    stop("argument 'par' must contain at least one parameter to be fitted")
+  }
+
   if (length(formula) == 2L) {
     residexpr <- formula[[2L]]
     fun_expr = NULL
@@ -498,7 +502,29 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
       })
   }
 
-  ##--- assemble body of mll function using formula, weights and errors expressions
+  ##--- prepare fit parameters as text for args of a function, in a list
+  par.txt = mapply(function(n, v) paste(n, "=", v), names(par), par, SIMPLIFY=FALSE)
+
+  extra = list(...)
+  if (any(names(extra) %in% names(par))) {
+    stop(paste0("Some extra args have the same name as the parameters:\n  ",
+               paste("'", names(extra)[names(extra) %in% names(par)], "'", sep=", ")))
+  }
+  ##--- prepare extra optional args as text for args of a function, in a list
+  extra.txt = mapply(function(n, v) paste(n, "=", v), names(extra), extra, SIMPLIFY=FALSE)
+
+  ##--- prepare list with all par and extra, with par grouped in a single par numeric vector
+  par.par.extra.txt = c(paste0("par=c(",
+                               paste(as.character(par.txt), collapse=", "),
+                               ")"),
+                        extra.txt)
+
+  ##--- prepare list with all par and extra, with each par in one argument
+  par.extra.txt = c(par.txt, extra.txt)
+  
+  ##
+  ## assemble body of mll function using formula, weights and errors expressions
+  ##
   fbody = residexpr
   if (!is.null(errors)) fbody = as.call(c(as.name("/"), fbody, errors))
   ##--- function corresponding to pulls
@@ -523,14 +549,11 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
   ## so resort to building text and parsing it
   ##
   data$fbody = fbody
-  mll_txt = paste0("make_function(alist(",
-                   paste(paste0("par=c(",
-                                paste0(names(par), "=", par, collapse=", "),
-                                ")"),
-                         paste0(names(list(...)), "=", sapply(list(...), as.character), collapse=", "
-                                ),
-                         sep=", "),
-                   "), fbody)")
+  mll_txt = paste0(
+    "make_function(alist(",
+    paste(par.par.extra.txt, collapse=", "),
+    "), fbody)")
+
   mll_fun = eval(parse(text=mll_txt), envir=data)
   rm(fbody, envir=data)
 
@@ -552,14 +575,10 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
   ## so resort to building text and parsing it
   ##
   data$fbody = fbody
-  pulls_txt = paste0("make_function(alist(",
-                     paste(paste0("par=c(",
-                                  paste0(names(par), "=", par, collapse=", "),
-                                  ")"),
-                           paste0(names(list(...)), "=", sapply(list(...), as.character), collapse=", "
-                                  ),
-                           sep=", "),
-                     "), fbody)")
+  pulls_txt = paste0(
+    "make_function(alist(",
+    paste(par.par.extra.txt, collapse=", "),
+    "), fbody)")
   pulls_fun = eval(parse(text=pulls_txt), envir=data)
   rm(fbody, envir=data)
 
@@ -591,6 +610,7 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
   }
 
   fun_args = setdiff(fun_args, c(names(par), names(list(...))))
+  fun_args.txt = lapply(fun_args, function(arg) paste0(arg, "="))
 
   fbody = as.call(c(
     as.name("{"),
@@ -609,23 +629,19 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
   ##
   ## define model function with fit parameters one numeric vector
   ##
-  fun_txt = paste0("make_function(alist(",
-                   paste(paste0(fun_args, "=", collapse=", "),
-                         paste0("par=c(", paste0(names(par), "=", par, collapse=", "), ")"),
-                         paste0(names(list(...)), "=", sapply(list(...), as.character), collapse=", "),
-                         sep=", "),
-                   "), fbody)")
+  fun_txt = paste0(
+    "make_function(alist(",
+    paste(c(fun_args.txt, par.par.extra.txt), collapse=", "),
+    "), fbody)")
   model_fun_par = eval(parse(text=fun_txt))
 
   ##
   ## define model function with fit parameters in separate args
   ##
-  fun_txt = paste0("make_function(alist(",
-                   paste(paste0(fun_args, "=", collapse=", "),
-                         paste0(names(par), "=", par, collapse=", "),
-                         paste0(names(list(...)), "=", sapply(list(...), as.character), collapse=", "),
-                         sep=", "),
-                   "), fun_expr)")
+  fun_txt = paste0(
+    "make_function(alist(",
+    paste(c(fun_args.txt, par.extra.txt), collapse=", "),
+    "), fun_expr)")
   model_fun = eval(parse(text=fun_txt))
 
   ##--- return mll function and model function in two formats
