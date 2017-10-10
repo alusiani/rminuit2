@@ -4,7 +4,7 @@ R package with an interface for using the
 [Minuit2](https://root.cern.ch/root/html/MATH_MINUIT2_Index.html)
 minimization library, which is included in this package.
 
-Minuit2 is a library to perform robust numerical miltidimensional
+Minuit2 is a library to perform robust numerical multidimensional
 minimization. It effectively finds the local minimum of
 a multi-parameter function, without requiring its gradient.
 
@@ -31,15 +31,16 @@ care in numerically estimating the parameter's uncertainties.
 
 This package also includes the ability to fit the parameters of a
 model that aims to describe a set of experimental measurements.  The
-model is described with a formula expression similarly to the nls
+model is described with a formula expression similarly to the
+[nls](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/nls.html)
 function for non-linear least squares fitting. The measurements' error
-distribution is modeled as Gaussian and a maximum-likelihood fit is
-performed. Errors that depend on the fit paramaters can be included
+distribution is modelled as Gaussian and a maximum-likelihood fit is
+performed. Errors that depend on the fit parameters can be included
 in the model.
 
 ### Installation and Usage
 
-Download the package tarball and build using R commands, or alternatively instally directly from Github using Hadley Wickham's [devtools](https://github.com/hadley/devtools) package. The R commands are:
+Download the package tarball and build using R commands, or alternatively install directly from Github using Hadley Wickham's [devtools](https://github.com/hadley/devtools) package. The R commands are:
 
 ```
 library(devtools)
