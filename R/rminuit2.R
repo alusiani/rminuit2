@@ -595,7 +595,7 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
   }
 
   fun_args = setdiff(fun_args, c(names(par), names(list(...))))
-  
+
   fbody = as.call(c(
     as.name("{"),
     list(
@@ -609,7 +609,7 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
   ## - fun_par(x, par, non_fitted_par) where all parameters are passed in a single numeric vector
   ## - fun(x, p1, p2, non_fitted_par) where the parameters are passed one per argument
   ##
-  
+
   ##
   ## define model function with fit parameters one numeric vector
   ##
@@ -738,7 +738,7 @@ rminuit2_expr_gaussian = function(formula, start, data=NULL, weights=NULL, error
   rc.fit = rminuit2_par(mll=rc$fun_mll, start=start, err=err, lower=lower, upper=upper, fix=fix, opt=opt,
                         maxcalls=maxcalls, nsigma=nsigma, envir=envir, ...)
 
-  ##--- build function with parameters set to fitted values, all parameters passer in one numeric vector
+  ##--- build function with parameters set to fitted values, all parameters passed in one numeric vector
   fun_args = formals(rc$fun_par)
 
   formals_txt = paste0(
@@ -763,7 +763,35 @@ rminuit2_expr_gaussian = function(formula, start, data=NULL, weights=NULL, error
       paste0(names(fun_args), "=", fun_args)),
       collapse=", "),
     ")")
-  
+
+  eval(parse(text=formals_txt))
+
+  ##--- build pulls function with parameters set to fitted values
+  fun_args = formals(rc$fun_pulls)
+
+  formals_txt = paste0(
+    "formals(rc$fun_pulls) = alist(",
+    paste0(ifelse(
+      names(fun_args) == "par",
+      paste0(names(fun_args), "=c(", paste0(names(rc.fit$par), "=", rc.fit$par, collapse=", "), ")"),
+      paste0(names(fun_args), "=", fun_args)),
+      collapse=", "),
+    ")")
+
+  eval(parse(text=formals_txt))
+
+  ##--- build mll function with parameters set to fitted values
+  fun_args = formals(rc$fun_mll)
+
+  formals_txt = paste0(
+    "formals(rc$fun_mll) = alist(",
+    paste0(ifelse(
+      names(fun_args) == "par",
+      paste0(names(fun_args), "=c(", paste0(names(rc.fit$par), "=", rc.fit$par, collapse=", "), ")"),
+      paste0(names(fun_args), "=", fun_args)),
+      collapse=", "),
+    ")")
+
   eval(parse(text=formals_txt))
 
   ##--- number of degrees of freedom
@@ -771,11 +799,11 @@ rminuit2_expr_gaussian = function(formula, start, data=NULL, weights=NULL, error
 
   invisible(c(
     rc.fit,
-    ndof=ndof,
-    nobs=rc$nobs,
-    mll=rc$mll,
-    pulls_fun=rc$pulls_fun,
-    fun=rc$fun,
-    fun_par=rc$fun_par
+    ndof = ndof,
+    nobs = rc$nobs,
+    fun_mll = rc$fun_mll,
+    fun_pulls = rc$fun_pulls,
+    fun = rc$fun,
+    fun_par = rc$fun_par
   ))
 }
