@@ -33,6 +33,7 @@
 #'    \item{\code{par}:}{Fitted parameters}
 #'    \item{\code{err}:}{Estimated uncertainties of fitted parameters}
 #'    \item{\code{cov}:}{Covariance matrix of the fitted parameters}
+#'    \item{\code{cor}:}{Correlation matrix of the fitted parameters}
 #'    \item{\code{err_minos_pos}:}{Minos-estimated positive parameters' uncertainties (if Minos errors were requested)}
 #'    \item{\code{err_minos_neg}:}{Minos-estimated negative parameters' uncertainties (if Minos errors requested)}
 #'    \item{\code{err_minos_pos_valid}:}{boolean vector, TRUE if Minos positive uncertainties are valid (if Minos errors were requested)}
@@ -94,7 +95,7 @@
 #'       minos_pos=fit.rc$err_minos_pos, minos_neg=fit.rc$err_minos_neg)
 #'
 #' # parameters' correlation matrix
-#' cov2cor(fit.rc$cov)
+#' fit.rc$cor
 #'
 #' @author Alberto Lusiani, \email{alusiani@gmail.com}
 #'
@@ -257,7 +258,7 @@ rminuit2 <- function(mll, start = formals(mll), err=NULL, lower=NULL, upper=NULL
 #'       minos_pos=fit.rc$err_minos_pos, minos_neg=fit.rc$err_minos_neg)
 #'
 #' # parameters' correlation matrix
-#' cov2cor(fit.rc$cov)
+#' fit.rc$cor
 #'
 #' @export
 #'
@@ -366,11 +367,16 @@ rminuit2_par <- function(mll, start, err=NULL, lower=NULL, upper=NULL, fix=NULL,
     if (!rc$MinosErrorsValid) warning("One or more Minos errors are not valid")
   }
 
+  ##--- compute correlation matrix
+  rc$cor = cov2cor(rc$cov)
+
+  ##--- number of fixed parameter derived from the size of covariance returned by Minuit2
+  npar_fixed = npar - nrow(rc$cov)
+
   ##
   ## returned covariance is restricted to just the non-fixed parameters
   ## add zero elements for all fixed parameters
   ##
-  npar_fixed = npar - nrow(rc$cov)
   rc$cov = cbind(rc$cov, matrix(0, nrow(rc$cov), npar_fixed))
   rc$cov = rbind(rc$cov, matrix(0, npar_fixed, npar))
   cov.reorder = c( which(fix==0), which(fix!=0) )
@@ -378,6 +384,18 @@ rminuit2_par <- function(mll, start, err=NULL, lower=NULL, upper=NULL, fix=NULL,
 
   colnames(rc$cov) = par.names
   rownames(rc$cov) = par.names
+
+  ##
+  ## fix correlation matrix for fixed parameters
+  ##
+  rc$cor = cbind(rc$cor, matrix(0, nrow(rc$cor), npar_fixed))
+  rc$cor = rbind(rc$cor, matrix(0, npar_fixed, npar))
+  cor.reorder = c( which(fix==0), which(fix!=0) )
+  rc$cor[cor.reorder, cor.reorder] = rc$cor
+  diag(rc$cor) = 1
+ 
+  colnames(rc$cor) = par.names
+  rownames(rc$cor) = par.names
 
   ##--- compute overall fit and covariance valid flag
   rc$allOK = all(
@@ -531,8 +549,10 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
   fbody.pulls = fbody
   fbody = as.call(c(as.name("^"), fbody, 2))
   if (!is.null(weights)) fbody = as.call(c(as.name("*"), fbody, weights))
-  fbody = as.call(c(quote(sum), fbody))
   fbody = as.call(c(as.name("*"), 1/2, fbody))
+  ##--- include sigma term in likelihood (matters only also errors are fitted)
+  fbody = as.call(c(as.name("+"), bquote(.(1/2*log(2*pi)) + log(.(errors))), fbody))
+  fbody = as.call(c(quote(sum), fbody))
 
   fbody = as.call(c(
     as.name("{"),
@@ -742,7 +762,7 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
 #'       minos_pos=fit.rc$err_minos_pos, minos_neg=fit.rc$err_minos_neg)
 #'
 #' # parameters' correlation matrix
-#' cov2cor(fit.rc$cov)
+#' fit.rc$cor
 #'
 #' @export
 #' 
