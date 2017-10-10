@@ -2,7 +2,7 @@
 % Please edit documentation in R/rminuit2.R
 \name{rminuit2}
 \alias{rminuit2}
-\title{Function Minimization with Minuit2}
+\title{Function Minimization and model fitting with Minuit2}
 \usage{
 rminuit2(mll, start = formals(mll), err = NULL, lower = NULL,
   upper = NULL, fix = NULL, opt = "h", maxcalls = 0L, nsigma = 1,

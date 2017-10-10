@@ -1,4 +1,4 @@
-#' Function Minimization with Minuit2
+#' Function Minimization and model fitting with Minuit2
 #'
 #' Performs function minimization using
 #' \href{https://project-mathlibs.web.cern.ch/project-mathlibs/sw/Minuit2/html/index.html}{Minuit2}
@@ -637,7 +637,7 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
     ))
 }
 
-#' Function Minimization with Minuit2
+#' Function Minimization and model fitting with Minuit2
 #'
 #' Fit data to a model performing minus log-likelihood minimization using
 #' \href{https://project-mathlibs.web.cern.ch/project-mathlibs/sw/Minuit2/html/index.html}{Minuit2}
@@ -654,6 +654,11 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
 #' @param weights formula corresponding to weights to assign to the data observations
 #'
 #' @param errors formula corresponding to the uncertaintites of the data observations
+#'
+#' @param lh desired likelihood for the measurement errors, one of:
+#'  \describe{
+#'    \item{\code{Gaussian}:}{measurements have Gaussian errors}
+#' }
 #'
 #' @param rhs_vars character vector with the name of all variables in the right-hand
 #'   side (RHS) of formula. The code attempts to get the variables automatically from the formula
@@ -709,8 +714,9 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
 #' y = do.call(y.func, c(list(x), model.par, const=model.extra.const)) + rnorm(sd=y.err, n=length(x))
 #'
 #' # fit model on data, ask to compute Minos errors too
-#' fit.rc = rminuit2_expr_gaussian(y ~ norm*exp(-x/tau) + const, c(norm=1, tau=10),
-#'   data=data.frame(x=x, y=y, y.err=y.err), errors=y.err, opt="hm", const=model.extra.const)
+#' fit.rc = rminuit2_expr(y ~ norm*exp(-x/tau) + const, c(norm=1, tau=10),
+#'   data=data.frame(x=x, y=y, y.err=y.err), errors=y.err,
+#'   lh="Gaussian", opt="hm", const=model.extra.const)
 #'
 #' # chi square / number of degrees of freedom
 #' cbind(chisq=fit.rc$chisq, ndof=fit.rc$ndof)
@@ -723,13 +729,20 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
 #' cov2cor(fit.rc$cov)
 #'
 #' @export
-#'
-rminuit2_expr_gaussian = function(formula, start, data=NULL, weights=NULL, errors=NULL,
-                                  err=NULL, lower=NULL, upper=NULL, fix=NULL, opt="h",
-                                  maxcalls=0L, nsigma=1, rhs_vars=NULL, envir=NULL, ...) {
-  rc = eval(substitute(
-    rminuit2_make_gaussian_mll(formula=formula, par=start, data=data, weights=weights, errors=errors, rhs_vars=rhs_vars, ...)))
-
+#' 
+rminuit2_expr = function(formula, start, data=NULL, weights=NULL, errors=NULL,
+                         err=NULL, lower=NULL, upper=NULL, fix=NULL,
+                         lh=c("Gaussian"),
+                         opt="h", maxcalls=0L, nsigma=1, rhs_vars=NULL, envir=NULL, ...) {
+  rc = switch(
+    tolower(lh[1]),
+    
+    gaussian = eval(substitute(
+      rminuit2_make_gaussian_mll(formula=formula, par=start, data=data, weights=weights, errors=errors, rhs_vars=rhs_vars, ...))),
+    
+    stop("bad 'lh', must be one of: 'Gaussian' (more will be added)")
+  )
+  
   rc.fit = rminuit2_par(mll=rc$fun_mll, start=start, err=err, lower=lower, upper=upper, fix=fix, opt=opt,
                         maxcalls=maxcalls, nsigma=nsigma, envir=envir, ...)
 
