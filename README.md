@@ -27,6 +27,16 @@ effective in minimizing functions with many parameters with large
 correlations and different scales. Furthermore, it devotes special
 care in numerically estimating the parameter's uncertainties.
 
+### Non-linear least-square fitting with maximum-likelihood fit
+
+This package also includes the ability to fit the parameters of a
+model that aims to describe a set of experimental measurements.  The
+model is described with a formula expression similarly to the nls
+function for non-linear least squares fitting. The measurements' error
+distribution is modeled as Gaussian and a maximum-likelihood fit is
+performed. Errors that depend on the fit paramaters can be included
+in the model.
+
 ### Installation and Usage
 
 Download the package tarball and build using R commands, or alternatively instally directly from Github using Hadley Wickham's [devtools](https://github.com/hadley/devtools) package. The R commands are:
