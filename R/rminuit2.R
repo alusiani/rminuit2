@@ -563,16 +563,12 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
   pulls_fun = eval(parse(text=pulls_txt), envir=data)
   rm(fbody, envir=data)
 
-  ##--- number of observations
-  nobs = length(pulls_fun(par))
-
   ##
   ## return just mll function when formula is of type "~ <residual formula"
   ##
   if (is.null(fun_expr))
     return(
       list(
-        nobs = nobs,
         fun_mll = mll_fun,
         fun_pulls = pulls_fun
       ))
@@ -634,7 +630,6 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
 
   ##--- return mll function and model function in two formats
   invisible(list(
-    nobs = nobs,
     fun_mll = mll_fun,
     fun_pulls = pulls_fun,
     fun = model_fun,
@@ -718,7 +713,7 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
 #'   data=data.frame(x=x, y=y, y.err=y.err), errors=y.err, opt="hm", const=model.extra.const)
 #'
 #' # chi square / number of degrees of freedom
-#' cbind(chisq=2*fit.rc$fval, ndof=length(x) - length(model.par))
+#' cbind(chisq=fit.rc$chisq, ndof=fit.rc$ndof)
 #'
 #' # fitted parameters and their estimated uncertainties
 #' cbind(model.value=model.par, value=fit.rc$par, error=fit.rc$err,
@@ -794,13 +789,25 @@ rminuit2_expr_gaussian = function(formula, start, data=NULL, weights=NULL, error
 
   eval(parse(text=formals_txt))
 
-  ##--- number of degrees of freedom
-  ndof = rc$nobs - length(start) + sum(fix != 0)
+  ##--- number of observations
+  pulls.val = rc$fun_pulls()
+  nobs = length(pulls.val)
 
+  ##
+  ## chisq, beware it is not 2*fval (mll minimum)
+  ## since possibly parameters' dependent errors are included
+  ## in the likelihood
+  ##
+  chisq = sum(pulls.val^2)
+
+  ##--- number of degrees of freedom
+  ndof = nobs - length(start) + sum(fix != 0)
+  
   invisible(c(
     rc.fit,
+    chisq = chisq,
     ndof = ndof,
-    nobs = rc$nobs,
+    nobs = nobs,
     fun_mll = rc$fun_mll,
     fun_pulls = rc$fun_pulls,
     fun = rc$fun,

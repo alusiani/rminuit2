@@ -107,7 +107,7 @@ fit.rc = rminuit2_expr_gaussian(y ~ norm*exp(-x/tau) + const, c(norm=1, tau=10),
   data=data.frame(x=x, y=y, y.err=y.err), errors=y.err, opt="hm", const=model.extra.const)
 
 # chi square / number of degrees of freedom
-cbind(chisq=2*fit.rc$fval, ndof=length(x) - length(model.par))
+cbind(chisq=fit.rc$chisq, ndof=fit.rc$ndof)
 
 # fitted parameters and their estimated uncertainties
 cbind(model.value=model.par, value=fit.rc$par, error=fit.rc$err,
