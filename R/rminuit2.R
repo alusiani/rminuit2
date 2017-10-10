@@ -152,8 +152,9 @@ rminuit2 <- function(mll, start = formals(mll), err=NULL, lower=NULL, upper=NULL
     par.list = c(par.list, list(...))
     do.call("mll", par.list)
   }
-  rminuit2_par(mll.par, start=start, err=err, lower=lower, upper=upper, fix=fix, opt=opt,
-               maxcalls=maxcalls, nsigma=nsigma, envir=envir, ...)
+  rc = rminuit2_par(mll.par, start=start, err=err, lower=lower, upper=upper, fix=fix, opt=opt,
+                    maxcalls=maxcalls, nsigma=nsigma, envir=envir, ...)
+  invisible(rc)
 }
 
 #' Function Minimization with Minuit2
@@ -403,7 +404,7 @@ rminuit2_par <- function(mll, start, err=NULL, lower=NULL, upper=NULL, fix=NULL,
   if (rc$IsAboveMaxEdm) warning("IsAboveMaxEdm")
   if (rc$HasReachedCallLimit) warning("maximum number of calls limit reached")
 
-  return(rc)
+  invisible(rc)
 }
 
 ##
@@ -468,14 +469,14 @@ make_function <- function (args, body, env = parent.frame())
 ##
 ## given a model formula, assemble minus log-likelihood for gaussian errors
 ##
-rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, errors=NULL) {
+rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, errors=NULL, rhs_vars=NULL) {
   weights = substitute(weights)
   errors = substitute(errors)
 
-  if (length(formula) == 2) {
-    residexpr <- formula[[2]]
+  if (length(formula) == 2L) {
+    residexpr <- formula[[2L]]
     fun_expr = NULL
-  } else if (length(formula) == 3) {
+  } else if (length(formula) == 3L) {
     residexpr <- call("-", formula[[2L]], formula[[3L]])
     fun_expr = formula[[3L]]
   } else stop("Unrecognized formula")
@@ -500,6 +501,8 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
   ##--- assemble body of mll function using formula, weights and errors expressions
   fbody = residexpr
   if (!is.null(errors)) fbody = as.call(c(as.name("/"), fbody, errors))
+  ##--- function corresponding to pulls
+  fbody.pulls = fbody
   fbody = as.call(c(as.name("^"), fbody, 2))
   if (!is.null(weights)) fbody = as.call(c(as.name("*"), fbody, weights))
   fbody = as.call(c(quote(sum), fbody))
@@ -510,22 +513,78 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
     list(
       bquote(if (is.null(names(par))) names(par) <- .(names(par))),
       quote(mapply(function(name, val) assign(name, val, pos=parent.frame(2)), names(par), par)),
-      fbody)))
+      fbody
+    )))
 
-  data$fbody = fbody
-  ## mll_fun = evalq(make_function(alist(par=), fbody), envir=data)
+  ##
+  ## (memo) mll_fun = evalq(make_function(alist(par=), fbody), envir=data)
   ## 
   ## could not find a way with make_function to set arg initialized to named numeric vector
   ## so resort to building text and parsing it
   ##
+  data$fbody = fbody
   mll_txt = paste0("make_function(alist(par=c(",
                    paste0(names(par), "=", par, collapse=", "),
                    ")), fbody)")
   mll_fun = eval(parse(text=mll_txt), envir=data)
   rm(fbody, envir=data)
 
-  fun_args = setdiff(all.vars(fun_expr), names(par))
+  ##
+  ## create pulls function
+  ##
+  fbody = as.call(c(
+    as.name("{"),
+    list(
+      bquote(if (is.null(names(par))) names(par) <- .(names(par))),
+      quote(mapply(function(name, val) assign(name, val, pos=parent.frame(2)), names(par), par)),
+      fbody.pulls
+    )))
 
+  ##
+  ## (memo) mll_fun = evalq(make_function(alist(par=), fbody), envir=data)
+  ## 
+  ## could not find a way with make_function to set arg initialized to named numeric vector
+  ## so resort to building text and parsing it
+  ##
+  data$fbody = fbody
+  pulls_txt = paste0("make_function(alist(par=c(",
+                   paste0(names(par), "=", par, collapse=", "),
+                   ")), fbody)")
+  pulls_fun = eval(parse(text=mll_txt), envir=data)
+  rm(fbody, envir=data)
+
+  ##--- number of observations
+  nobs = length(pulls_fun(par))
+
+  ##
+  ## return just mll function when formula is of type "~ <residual formula"
+  ##
+  if (is.null(fun_expr))
+    return(
+      list(
+        nobs=nobs,
+        mll=mll_fun,
+        pulls_fun=pulls_fun
+      ))
+
+  ##
+  ## build function corresponding to formula RHS
+  ##
+  if (!is.null(rhs_vars)) {
+    ##--- take all variables of RHS of formula from the caller
+    fun_args = rhs_vars
+  } else {
+    ##
+    ## all.vars(formula) does not return variables that are initialized
+    ## brute force procedure to get rid of all (or most) initializations
+    ## - one possible failure: variables initialized with expressions containing parenthesis
+    ## 
+    fun_expr_str = gsub("\\s+", " ", paste(deparse(fun_expr), collapse=""))
+    fun_expr_str = gsub("\\s*=\\s*[[:alnum:]._+*/^-]+", "", fun_expr_str)
+    fun_args = all.vars(parse(text=fun_expr_str))
+  }
+
+  fun_args = setdiff(fun_args, names(par))
   fbody = as.call(c(
     as.name("{"),
     list(
@@ -533,8 +592,12 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
       quote(mapply(function(name, val) assign(name, val, pos=parent.frame(2)), names(par), par)),
       fun_expr)))
 
-  if (is.null(fun_expr)) return(list(mll=mll_fun))
-
+  ##
+  ## if formula is of type "y ~ f(x, par)" then it is possible to get f(x, par)
+  ## therefore return to caller f(x, par) in two formats
+  ## - fun_par(x, par) where all parameters are passer in a single numeric vector
+  ## - fun(x, p1, p2, ...) where the parameters are passed one per argument
+  ##
   fun_txt = paste0("make_function(alist(",
                    paste0(fun_args, "=", collapse=", "),
                    ", par=c(", paste0(names(par), "=", par, collapse=", "),
@@ -547,7 +610,14 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
                    "), fun_expr)")
   model_fun = eval(parse(text=fun_txt))
 
-  list(mll=mll_fun, fun=model_fun, fun_par=model_fun_par)
+  ##--- return mll function and model function in two formats
+  invisible(list(
+    nobs=nobs,
+    mll=mll_fun,
+    pulls_fun=pulls_fun,
+    fun=model_fun,
+    fun_par=model_fun_par
+    ))
 }
 
 #' Function Minimization with Minuit2
@@ -567,6 +637,11 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
 #' @param weights formula corresponding to weights to assign to the data observations
 #'
 #' @param errors formula corresponding to the uncertaintites of the data observations
+#'
+#' @param rhs_vars character vector with the name of all variables in the right-hand
+#'   side (RHS) of formula. The code attempts to get the variables automatically from the formula
+#'   expression if this argument is not provided, but may fail. For simple formula, most often
+#'   there is no need to provide this argument.
 #'
 #' @param ... extra arguments for the model, weights and error formulas
 #'
@@ -630,12 +705,12 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
 #'
 rminuit2_expr_gaussian = function(formula, start, data=NULL, weights=NULL, errors=NULL,
                                   err=NULL, lower=NULL, upper=NULL, fix=NULL, opt="h",
-                                  maxcalls=0L, nsigma=1, envir=NULL, ...) {
+                                  maxcalls=0L, nsigma=1, rhs_vars=NULL, envir=NULL, ...) {
   rc = eval(substitute(
-    rminuit2_make_gaussian_mll(formula=formula, par=start, data=data, weights=weights, errors=errors)))
-
+    rminuit2_make_gaussian_mll(formula=formula, par=start, data=data, weights=weights, errors=errors, rhs_vars=rhs_vars)))
+  
   rc.fit = rminuit2_par(rc$mll, start=start, err=err, lower=lower, upper=upper, fix=fix, opt=opt,
-                    maxcalls=maxcalls, nsigma=nsigma, envir=envir, ...)
+                        maxcalls=maxcalls, nsigma=nsigma, envir=envir, ...)
   
   ##--- build function with parameters set to fitted values
   fun_args = names(formals(rc$fun_par))
@@ -654,5 +729,16 @@ rminuit2_expr_gaussian = function(formula, start, data=NULL, weights=NULL, error
          ")")
   eval(parse(text=formals_txt))
 
-  c(rc.fit, fun=rc$fun, fun_par=rc$fun_par)
+  ##--- number of degrees of freedom
+  ndof = rc$nobs - length(start) + sum(fix != 0)
+  
+  invisible(c(
+    rc.fit,
+    ndof=ndof,
+    nobs=rc$nobs,
+    mll=rc$mll,
+    pulls_fun=rc$pulls_fun,
+    fun=rc$fun,
+    fun_par=rc$fun_par
+  ))
 }

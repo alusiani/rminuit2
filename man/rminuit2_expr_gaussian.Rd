@@ -6,7 +6,8 @@
 \usage{
 rminuit2_expr_gaussian(formula, start, data = NULL, weights = NULL,
   errors = NULL, err = NULL, lower = NULL, upper = NULL, fix = NULL,
-  opt = "h", maxcalls = 0L, nsigma = 1, envir = NULL, ...)
+  opt = "h", maxcalls = 0L, nsigma = 1, rhs_vars = NULL, envir = NULL,
+  ...)
 }
 \arguments{
 \item{formula}{expression describing the model to be fitted to data}
@@ -41,6 +42,11 @@ rminuit2_expr_gaussian(formula, start, data = NULL, weights = NULL,
 \item{maxcalls}{integer, maximum number of calls, defaults to \code{0} (no limit).}
 
 \item{nsigma}{numeric, number of standard deviations for Minos errors}
+
+\item{rhs_vars}{character vector with the name of all variables in the right-hand
+side (RHS) of formula. The code attempts to get the variables automatically from the formula
+expression if this argument is not provided, but may fail. For simple formula, most often
+there is no need to provide this argument.}
 
 \item{envir}{not used. Will possibly be used in the future as the same argument in \code{rminuit2_par}.}
 
