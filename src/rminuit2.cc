@@ -1,18 +1,12 @@
 //
-// rminuit2
+// rminuit2.cc
 //
 // by Alberto Lusiani
-// adapted from Minuit2
 // Copyright (c) 2017, Alberto Lusiani
-// license: GNU LGPL 2.1
+// license: GNU LGPL 3.0
 //
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
+// C++ code for invoking Minuit2 procedures for the R package rminuit2
+// - reliaes on the Rcpp package
 //
 
 // $Id$
@@ -100,6 +94,7 @@ public:
 private:
   Rcpp::EvalBase* const fFunc;
   double fUp;
+
 };
 
 //
