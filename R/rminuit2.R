@@ -322,7 +322,7 @@ rminuit2_par <- function(mll, start, err=NULL, lower=NULL, upper=NULL, fix=NULL,
   if (!is.null(names(fix))) {
     if (any(! names(fix) %in% par.names))
       stop("some named arguments in 'fix' are not parameters to be minimized in 'start'")
-    fix = setNames(ifelse(par.names %in% names(fix), fix, 0), par.names)
+    fix = setNames(ifelse(par.names %in% names(fix), fix[par.names], 0), par.names)
   }
 
   if (length(err) != npar) stop("if unnamed, vector 'err' must have the same length as 'start'")
@@ -573,7 +573,6 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
     "make_function(alist(",
     paste(par.par.extra.txt, collapse=", "),
     "), fbody)")
-
   mll_fun = eval(parse(text=mll_txt), envir=data)
   rm(fbody, envir=data)
 
@@ -603,7 +602,7 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
   rm(fbody, envir=data)
 
   ##
-  ## return just mll function when formula is of type "~ <residual formula"
+  ## return just mll function when formula is of type "~ <residual formula>"
   ##
   if (is.null(fun_expr))
     return(
