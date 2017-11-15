@@ -50,6 +50,7 @@ A list with the following components:
    \item{\code{par}:}{Fitted parameters}
    \item{\code{err}:}{Estimated uncertainties of fitted parameters}
    \item{\code{cov}:}{Covariance matrix of the fitted parameters}
+   \item{\code{cor}:}{Correlation matrix of the fitted parameters}
    \item{\code{err_minos_pos}:}{Minos-estimated positive parameters' uncertainties (if Minos errors were requested)}
    \item{\code{err_minos_neg}:}{Minos-estimated negative parameters' uncertainties (if Minos errors requested)}
    \item{\code{err_minos_pos_valid}:}{boolean vector, TRUE if Minos positive uncertainties are valid (if Minos errors were requested)}
@@ -113,7 +114,7 @@ cbind(model.value=model.par, value=fit.rc$par, error=fit.rc$err,
       minos_pos=fit.rc$err_minos_pos, minos_neg=fit.rc$err_minos_neg)
 
 # parameters' correlation matrix
-cov2cor(fit.rc$cov)
+fit.rc$cor
 
 }
 \seealso{

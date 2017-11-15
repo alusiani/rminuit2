@@ -129,7 +129,7 @@ cbind(model.value=model.par, value=fit.rc$par, error=fit.rc$err,
       minos_pos=fit.rc$err_minos_pos, minos_neg=fit.rc$err_minos_neg)
 
 # parameters' correlation matrix
-cov2cor(fit.rc$cov)
+fit.rc$cor
 
 }
 \seealso{

@@ -103,10 +103,9 @@
 #'
 #' @useDynLib rminuit2
 #'
-#' @importFrom Rcpp sourceCpp
-#' @importFrom Rcpp evalCpp
 #' @importFrom methods hasArg
-#' @importFrom stats setNames
+#' @importFrom stats setNames cov2cor
+#' @importFrom Rcpp sourceCpp evalCpp
 #'
 #' @export
 #'
