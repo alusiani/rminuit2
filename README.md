@@ -10,7 +10,11 @@ a multi-parameter function, without requiring its gradient.
 
 Minuit2 is a C++ implementation of the Fortran program Minuit, written
 by Frank James. It is integrated with the HEP package
-[Root](https://root.cern.ch/). Minuit and Minuit2 have been developed
+[Root](https://root.cern.ch/) [see Rene Brun and Fons Rademakers,
+ROOT - An Object Oriented Data Analysis Framework,
+Proceedings AIHENP'96 Workshop, Lausanne, Sep. 1996,
+Nucl. Inst. & Meth. in Phys. Res. A 389 (1997) 81-86].
+Minuit and Minuit2 have been developed
 and are mainly used for High Energy Physics (HEP) data analysis.
 
 Assuming that the minimized function is the negative logarithm of a
