@@ -24,13 +24,13 @@ minuit2:
 	@echo PKG_LIBS $(PKG_LIBS)
 	@echo PKG_CPPFLAGS $(PKG_CPPFLAGS)
 	@echo PKG_CXXFLAGS $(PKG_CXXFLAGS)
-	(cd minuit2-alu && $(MAKE) CXX="$(CXX11) $(CXX11STD)" \
+	(cd minuit2 && $(MAKE) CXX="$(CXX11) $(CXX11STD)" \
           CXXFLAGS="$(CXX11FLAGS) $(CXX11PICFLAGS)" CPPFLAGS="$(CPPFLAGS) $(PKG_CPPFLAGS)")
-	(cd minuit2-alu && $(MAKE) install DESTDIR=$(PWD)/../inst)
+	(cd minuit2 && $(MAKE) install DESTDIR=$(PWD)/../inst)
 
 preclean: $(SHLIB)
 	$(RM) -rf ../inst
 
 clean:
-	(cd minuit2-alu && $(MAKE) distclean)
+	(cd minuit2 && $(MAKE) distclean)
 	$(RM) -rf ../inst

@@ -2,5 +2,5 @@
 #
 # configure Minuit2
 #
-cd src/minuit2-alu
+cd src/minuit2
 ./configure --prefix="/"
