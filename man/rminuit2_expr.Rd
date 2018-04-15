@@ -63,12 +63,18 @@ A list with the following components:
    \item{\code{par}:}{Fitted parameters}
    \item{\code{err}:}{Estimated uncertainties of fitted parameters}
    \item{\code{cov}:}{Covariance matrix of the fitted parameters}
+   \item{\code{cor}:}{Correlation matrix of the fitted parameters}
+   \item{\code{chisq}:}{Chi square (sum of the residuals divided by their estimated uncertainties) at the minimum.}
+   \item{\code{ndof}:}{Number of degrees of freedom, equal to the number of observations minus the number of the optimized fit parameters}
+   \item{\code{nobs}:}{Number of observations}
    \item{\code{err_minos_pos}:}{Minos-estimated positive parameters' uncertainties (if Minos errors were requested)}
    \item{\code{err_minos_neg}:}{Minos-estimated negative parameters' uncertainties (if Minos errors requested)}
    \item{\code{err_minos_pos_valid}:}{boolean vector, TRUE if Minos positive uncertainties are valid (if Minos errors were requested)}
    \item{\code{err_minos_neg_valid}:}{boolean vector, TRUE if Minos negative uncertainties are valid (if Minos errors were requested)}
    \item{\code{fun}:}{function corresponding to model with parameters initialized to the fitted values}
    \item{\code{fun_par}:}{function corresponding to model with parameters initialized to the fitted values, all parameters are passed as a possibly-named numeric vector in the last argument, which is named \code{par}}
+   \item{\code{fun_mll}:}{Function that has been assembled to compute the likelihood, with a single argument par containing all fitted parameters, plus extra arguments for the extra parameters, if existing}
+   \item{\code{fun_pulls}:}{Function returning the array of pulls (residual divided by estimated uncertainty), one for each observation. It has the same parameters as \code{fun_mll}}
    \item{\code{allOK}:}{TRUE if the fit converged and the parameters and their covariance are OK}
    \item{\code{MinosErrorsValid}:}{TRUE if the MINOS errors are all valid}
    \item{\code{IsValid}:}{TRUE if the fit minimization converged}
