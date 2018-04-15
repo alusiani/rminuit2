@@ -5,12 +5,13 @@
 \title{Function Minimization with Minuit2}
 \usage{
 rminuit2_par(mll, start, err = NULL, lower = NULL, upper = NULL,
-  fix = NULL, opt = "h", maxcalls = 0L, nsigma = 1, envir = NULL, ...)
+  fix = NULL, opt = "h", maxcalls = 0L, nsigma = 1, ...)
 }
 \arguments{
 \item{mll}{The function to be minimized, which must have as first
   argument a numeric vector of the parameters to be optimized. Futher
-  arguments can be specified as optional arguments in \code{rminuit2_par}.
+  arguments can be specified as optional arguments in \code{rminuit2_par}
+  or in the environment passed using the \code{envir} argument. 
 
   The function can
   also be an external pointer to a C++ function compiled using the
@@ -46,15 +47,9 @@ rminuit2_par(mll, start, err = NULL, lower = NULL, upper = NULL,
 
 \item{nsigma}{numeric, number of standard deviations for Minos errors}
 
-\item{envir}{An R environment containing all extra arguments to be passed
-to the mll function, if the mll function is implemented in C++. Arguments
-must be matched exactly. If the mll function is implemented in R
-then the extra arguments should be passed to it using the optional arguments
-in \code{...} instead.}
-
-\item{...}{extra arguments for the mll function, it the mll function is implemented in R.
+\item{...}{extra arguments for the mll function.
 If the mll function is implemented in C++ then the extra arguments
-should be passed to it using the \code{envir} argument instead.}
+are collected in an environment, which is passed to the function.}
 }
 \value{
 A list with the following components:

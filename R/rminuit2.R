@@ -23,7 +23,6 @@
 #'   }
 #' @param maxcalls integer, maximum number of calls, defaults to \code{0} (no limit).
 #' @param nsigma numeric, number of standard deviations for Minos errors
-#' @param envir not used. Will possibly be used in the future as the same argument in \code{rminuit2_par}.
 #' @param ... extra arguments for the mll function.
 #'
 #' @return A list with the following components:
@@ -110,7 +109,7 @@
 #' @export
 #'
 rminuit2 <- function(mll, start = formals(mll), err=NULL, lower=NULL, upper=NULL, fix=NULL, opt="h",
-                     maxcalls=0L, nsigma=1, envir=NULL, ...) {
+                     maxcalls=0L, nsigma=1, ...) {
   call <- match.call()
   mll.args <- formals(mll)
 
@@ -133,7 +132,6 @@ rminuit2 <- function(mll, start = formals(mll), err=NULL, lower=NULL, upper=NULL
     })
 
   start.names <- names(start)
-  mll.args.match <- match(start.names, names(mll.args))
   not.init = setdiff(names(mll.args), start.names)
   not.init = setdiff(not.init, names(list(...)))
   not.init.flag = sapply(mll.args[not.init], is.symbol)
@@ -142,6 +140,7 @@ rminuit2 <- function(mll, start = formals(mll), err=NULL, lower=NULL, upper=NULL
                 paste0("'", not.init[not.init.flag], "'", collapse=", "),
                 "\n  not initialized in either the mll function, in start, or in optional parameters"))
   }
+  mll.args.match <- match(start.names, names(mll.args))
   if (anyNA(mll.args.match))
     stop("some named arguments in 'start' are not arguments to the supplied mll function")
   start <- start[order(mll.args.match)]
@@ -153,7 +152,7 @@ rminuit2 <- function(mll, start = formals(mll), err=NULL, lower=NULL, upper=NULL
     do.call("mll", par.list)
   }
   rc = rminuit2_par(mll.par, start=start, err=err, lower=lower, upper=upper, fix=fix, opt=opt,
-                    maxcalls=maxcalls, nsigma=nsigma, envir=envir, ...)
+                    maxcalls=maxcalls, nsigma=nsigma, ...)
   invisible(rc)
 }
 
@@ -166,7 +165,8 @@ rminuit2 <- function(mll, start = formals(mll), err=NULL, lower=NULL, upper=NULL
 #'
 #' @param mll The function to be minimized, which must have as first
 #'   argument a numeric vector of the parameters to be optimized. Futher
-#'   arguments can be specified as optional arguments in \code{rminuit2_par}.
+#'   arguments can be specified as optional arguments in \code{rminuit2_par}
+#'   or in the environment passed using the \code{envir} argument. 
 #'
 #'   The function can
 #'   also be an external pointer to a C++ function compiled using the
@@ -177,15 +177,9 @@ rminuit2 <- function(mll, start = formals(mll), err=NULL, lower=NULL, upper=NULL
 #'   The full potential of this package is attained when the function corresponds to
 #'   the negative logarithm of a likelihood or minus-log-likelihood (MLL).
 #'
-#' @param envir An R environment containing all extra arguments to be passed
-#'   to the mll function, if the mll function is implemented in C++. Arguments
-#'   must be matched exactly. If the mll function is implemented in R
-#'   then the extra arguments should be passed to it using the optional arguments
-#'   in \code{...} instead.
-#'
-#' @param ... extra arguments for the mll function, it the mll function is implemented in R.
+#' @param ... extra arguments for the mll function.
 #'   If the mll function is implemented in C++ then the extra arguments
-#'   should be passed to it using the \code{envir} argument instead.
+#'   are collected in an environment, which is passed to the function.
 #'
 #' @return A list with the following components:
 #'  \describe{
@@ -262,11 +256,7 @@ rminuit2 <- function(mll, start = formals(mll), err=NULL, lower=NULL, upper=NULL
 #' @export
 #'
 rminuit2_par <- function(mll, start, err=NULL, lower=NULL, upper=NULL, fix=NULL, opt="h",
-                         maxcalls=0L, nsigma=1, envir=NULL, ...) {
-
-  ##--- Initialize environment if NULL
-  ## if (!hasArg(envir)) envir <- new.env()
-  if (is.null(envir)) envir <- new.env()
+                         maxcalls=0L, nsigma=1, ...) {
 
   ## xtol <- .Machine$double.eps
 
@@ -340,7 +330,6 @@ rminuit2_par <- function(mll, start, err=NULL, lower=NULL, upper=NULL, fix=NULL,
   upper = ifelse(is.na(upper), Inf, upper)
   fix = as.integer(fix)
   fix = ifelse(is.na(fix), 0L, fix)
-  envir = as.environment(envir)
   maxcalls = as.integer(maxcalls)
   maxcalls = ifelse(is.na(maxcalls), 0L, maxcalls)
   nsigma = as.numeric(nsigma)
@@ -349,10 +338,17 @@ rminuit2_par <- function(mll, start, err=NULL, lower=NULL, upper=NULL, fix=NULL,
   ##--- fix errors to zero for fixed parameters
   err[which(fix!=0)] = 0
 
+  ##--- when minimizing a C++ function, extra args must be in envir argument
+  envir.list = list(...)
+  envir = new.env()
+  for (n in names(envir.list)) assign(n, envir.list[[n]], envir)
+
   ##--- Call main C++ routine
   rc <- .Call('_rminuit2_rminuit2_cpp', PACKAGE = 'rminuit2',
               mll, start, err, lower, upper,
               fix, opt, envir, maxcalls, nsigma)
+
+  rm(envir)
 
   ##--- add names for output
   names(rc$par) = par.names
@@ -767,7 +763,7 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
 rminuit2_expr = function(formula, start, data=NULL, weights=NULL, errors=NULL,
                          err=NULL, lower=NULL, upper=NULL, fix=NULL,
                          lh=c("Gaussian"),
-                         opt="h", maxcalls=0L, nsigma=1, rhs_vars=NULL, envir=NULL, ...) {
+                         opt="h", maxcalls=0L, nsigma=1, rhs_vars=NULL, ...) {
   rc = switch(
     tolower(lh[1]),
     
@@ -778,7 +774,7 @@ rminuit2_expr = function(formula, start, data=NULL, weights=NULL, errors=NULL,
   )
   
   rc.fit = rminuit2_par(mll=rc$fun_mll, start=start, err=err, lower=lower, upper=upper, fix=fix, opt=opt,
-                        maxcalls=maxcalls, nsigma=nsigma, envir=envir, ...)
+                        maxcalls=maxcalls, nsigma=nsigma, ...)
 
   ##--- build function with parameters set to fitted values, all parameters passed in one numeric vector
   fun_args = formals(rc$fun_par)

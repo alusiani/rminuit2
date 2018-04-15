@@ -5,8 +5,7 @@
 \title{Function Minimization and model fitting with Minuit2}
 \usage{
 rminuit2(mll, start = formals(mll), err = NULL, lower = NULL,
-  upper = NULL, fix = NULL, opt = "h", maxcalls = 0L, nsigma = 1,
-  envir = NULL, ...)
+  upper = NULL, fix = NULL, opt = "h", maxcalls = 0L, nsigma = 1, ...)
 }
 \arguments{
 \item{mll}{The function to be minimized.
@@ -37,8 +36,6 @@ the negative logarithm of a likelihood or minus-log-likelihood (MLL).}
 \item{maxcalls}{integer, maximum number of calls, defaults to \code{0} (no limit).}
 
 \item{nsigma}{numeric, number of standard deviations for Minos errors}
-
-\item{envir}{not used. Will possibly be used in the future as the same argument in \code{rminuit2_par}.}
 
 \item{...}{extra arguments for the mll function.}
 }

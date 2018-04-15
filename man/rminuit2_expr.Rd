@@ -7,7 +7,7 @@
 rminuit2_expr(formula, start, data = NULL, weights = NULL, errors = NULL,
   err = NULL, lower = NULL, upper = NULL, fix = NULL,
   lh = c("Gaussian"), opt = "h", maxcalls = 0L, nsigma = 1,
-  rhs_vars = NULL, envir = NULL, ...)
+  rhs_vars = NULL, ...)
 }
 \arguments{
 \item{formula}{expression describing the model to be fitted to data}
@@ -52,8 +52,6 @@ rminuit2_expr(formula, start, data = NULL, weights = NULL, errors = NULL,
 side (RHS) of formula. The code attempts to get the variables automatically from the formula
 expression if this argument is not provided, but may fail. For simple formula, most often
 there is no need to provide this argument.}
-
-\item{envir}{not used. Will possibly be used in the future as the same argument in \code{rminuit2_par}.}
 
 \item{...}{extra arguments for the model, weights and error formulas}
 }

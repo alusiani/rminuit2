@@ -1,7 +1,6 @@
 //
 // rminuit2.cc
 //
-// by Alberto Lusiani
 // Copyright (c) 2017, Alberto Lusiani
 // license: GNU LGPL 3.0
 //
@@ -47,6 +46,9 @@ using namespace Rcpp;
 
 using namespace ROOT::Minuit2;
 
+//
+// check if single letter option is present in string
+//
 inline bool contained(char cmp, const std::string& str) {
   return str.find(cmp) != std::string::npos;
 }
@@ -65,6 +67,7 @@ public:
 
   ~FcnRcppAdapter() {}
 
+  //--- interface with arg = std::vector
   double operator()(const std::vector<double>& par) const {
     const Rcpp::NumericVector rc( fFunc->eval(Rcpp::wrap(par)) );
 #if 0
@@ -76,6 +79,7 @@ public:
   }
 
 #if 0
+  //--- alternative interface with arg = array of doubles
   double operator()(const double* par) const {
     const Rcpp::NumericVector rc( fFunc->eval(Rcpp::wrap(par)) );
 #if 0
