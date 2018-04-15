@@ -31,6 +31,10 @@ effective in minimizing functions with many parameters with large
 correlations and different scales. Furthermore, it devotes special
 care in numerically estimating the parameter's uncertainties.
 
+### Minimization of a C++ function
+
+Relying on the packages [Rcpp](https://github.com/RcppCore/Rcpp) and [inline](https://CRAN.R-project.org/package=inline) and following the examples n the packages [lbfgs](https://CRAN.R-project.org/package=lbfgs) and [RcppDE](http://cran.r-project.org/web/packages/RcppDE/index.html), it is possible to define the function to be minimized in C++.
+
 ### Non-linear least-square fitting with maximum-likelihood fit
 
 This package also includes the ability to fit the parameters of a
@@ -61,6 +65,17 @@ For usage, please refer to the documentation.
 ### Dependencies
 
 - [Rcpp](https://github.com/RcppCore/Rcpp) for seamless R and C++ integration
+
+### Acknowledgements
+
+This package relies on the infrastracture for interfacing C++ offered
+by [Rcpp](https://github.com/RcppCore/Rcpp).
+
+To offer the possibility to write in C++ the function to be
+minimized, we used code and examples from the packages:
+
+* Antonio Coppola, Brandon Stewart, Naoaki Okazaki, [lbfgs: Efficient L-BFGS and OWL-QN Optimization in R](https://CRAN.R-project.org/package=lbfgs);
+* Dirk Eddelbuettel, [RcppDE: Global optimization by Differential Evolution in C++](http://cran.r-project.org/web/packages/RcppDE/index.html).
 
 ### Authors
 
