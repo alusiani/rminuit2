@@ -345,9 +345,7 @@ rminuit2_par <- function(mll, start, err=NULL, lower=NULL, upper=NULL, fix=NULL,
   for (n in names(envir.list)) assign(n, envir.list[[n]], envir)
 
   ##--- Call main C++ routine
-  rc <- .Call('_rminuit2_rminuit2_cpp', PACKAGE = 'rminuit2',
-              mll, start, err, lower, upper,
-              fix, opt, envir, maxcalls, nsigma)
+  rc <- rminuit2_cpp(mll, start, err, lower, upper, fix, opt, envir, maxcalls, nsigma)
 
   rm(envir)
 
