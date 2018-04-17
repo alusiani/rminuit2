@@ -364,32 +364,28 @@ rminuit2_par <- function(mll, start, err=NULL, lower=NULL, upper=NULL, fix=NULL,
   ##--- compute correlation matrix
   rc$cor = cov2cor(rc$cov)
 
-  ##--- number of fixed parameter derived from the size of covariance returned by Minuit2
-  npar_fixed = npar - nrow(rc$cov)
+  ##--- which parameters are free to float
+  which_nonfix_par = which(fix==0)
 
   ##
   ## returned covariance is restricted to just the non-fixed parameters
   ## add zero elements for all fixed parameters
   ##
-  rc$cov = cbind(rc$cov, matrix(0, nrow(rc$cov), npar_fixed))
-  rc$cov = rbind(rc$cov, matrix(0, npar_fixed, npar))
-  cov.reorder = c( which(fix==0), which(fix!=0) )
-  rc$cov[cov.reorder, cov.reorder] = rc$cov
-
-  colnames(rc$cov) = par.names
-  rownames(rc$cov) = par.names
+  cov = matrix(0, nrow=npar, ncol=npar)
+  cov[which_nonfix_par, which_nonfix_par] = rc$cov 
+  colnames(cov) = par.names
+  rownames(cov) = par.names
+  rc$cov = cov
 
   ##
-  ## fix correlation matrix for fixed parameters
+  ## return zero correlation for fixed parameters and
+  ## the correlation of the fit results for the floating parameters
   ##
-  rc$cor = cbind(rc$cor, matrix(0, nrow(rc$cor), npar_fixed))
-  rc$cor = rbind(rc$cor, matrix(0, npar_fixed, npar))
-  cor.reorder = c( which(fix==0), which(fix!=0) )
-  rc$cor[cor.reorder, cor.reorder] = rc$cor
-  diag(rc$cor) = 1
- 
-  colnames(rc$cor) = par.names
-  rownames(rc$cor) = par.names
+  cor = diag(rep(1, npar))
+  cor[which_nonfix_par, which_nonfix_par] = rc$cor 
+  colnames(cor) = par.names
+  rownames(cor) = par.names
+  rc$cor = cor
 
   ##--- compute overall fit and covariance valid flag
   rc$allOK = all(
