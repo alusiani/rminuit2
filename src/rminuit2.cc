@@ -5,7 +5,7 @@
 // license: GNU LGPL 3.0
 //
 // C++ code for invoking Minuit2 procedures for the R package rminuit2
-// - reliaes on the Rcpp package
+// - relies on the Rcpp package
 //
 
 // $Id$
