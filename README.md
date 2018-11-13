@@ -17,9 +17,18 @@ Nucl. Inst. & Meth. in Phys. Res. A 389 (1997) 81-86].
 Minuit and Minuit2 have been developed
 and are mainly used for HEP data analysis.
 
-Assuming that the minimized function is the negative logarithm of a
-likelihood (MLL) of measurements of a Physics model, depending on
-parameters to be fitted to the measurements, Minuit2 estimates the
+In Physics, measurements are supposed to be probabilistically
+distributed according to the predictions of a Physics model and the
+resolution of the instrumentation used for the
+measurements. Typically, the Physics model includes unknown parameters
+to be determined via measurements. The likelihood of a set of
+measurements is the product of the probability density of each
+individual measurement. The optimal Physics model parameters are the
+ones that mazimize the likelihood or, equivalently, minimize the
+regative logarithm of the likelihood (MLL).
+
+When Minuit2 minimizes a MLL function, it determines the optimal
+Physics model parameters and it also estimates the
 optimized parameters' uncertainties and covariance matrix by
 numerically computing the Hesse matrix of the second derivatives of
 the MLL at the minimum. Minuit2 can also compute the optimized
