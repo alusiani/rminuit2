@@ -82,7 +82,7 @@ public:
   //--- alternative interface with arg = array of doubles
   double operator()(const double* par) const {
     const Rcpp::NumericVector rc( fFunc->eval(Rcpp::wrap(par)) );
-
+#if 0
     if (rc.size() != 1) {
       //+++ throw exception, function returned vector of length rc.size()
     }
