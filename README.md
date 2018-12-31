@@ -24,8 +24,8 @@ measurements. Typically, the Physics model includes unknown parameters
 to be determined via measurements. The likelihood of a set of
 measurements is the product of the probability density of each
 individual measurement. The optimal Physics model parameters are the
-ones that mazimize the likelihood or, equivalently, minimize the
-regative logarithm of the likelihood (MLL).
+ones that maximize the likelihood or, equivalently, minimize the
+negative logarithm of the likelihood (Minus Log-Likelihood, MLL).
 
 When Minuit2 minimizes a MLL function, it determines the optimal
 Physics model parameters and it also estimates the
