@@ -57,7 +57,7 @@ in the model.
 
 ### Installation and Usage
 
-Download the package tarball and build using R commands, or alternatively install directly from Github using Hadley Wickham's [devtools](https://github.com/hadley/devtools) package. The R commands are:
+Download the package tarball and build using R commands, or alternatively install directly from Github using the [remotes](https://CRAN.R-project.org/package=remotes) package. The R commands are:
 
 ```
 ## install.packages("remotes")
