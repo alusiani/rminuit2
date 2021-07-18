@@ -60,8 +60,8 @@ in the model.
 Download the package tarball and build using R commands, or alternatively install directly from Github using Hadley Wickham's [devtools](https://github.com/hadley/devtools) package. The R commands are:
 
 ```
-library(devtools)
-install_github("alusiani/rminuit2")
+## install.packages("remotes")
+remotes::install_github("alusiani/rminuit2")
 ```
 
 The package has been tested so far only on Linux, and is not prepared
