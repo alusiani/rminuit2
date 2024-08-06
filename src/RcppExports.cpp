@@ -5,6 +5,11 @@
 
 using namespace Rcpp;
 
+#ifdef RCPP_USE_GLOBAL_ROSTREAM
+Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
+Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
+#endif
+
 // rminuit2_cpp
 Rcpp::List rminuit2_cpp(SEXP fn, Rcpp::NumericVector par, Rcpp::NumericVector err, Rcpp::NumericVector lower, Rcpp::NumericVector upper, Rcpp::IntegerVector fix, Rcpp::StringVector opt, SEXP envir, Rcpp::IntegerVector maxcalls, Rcpp::NumericVector nsigma);
 RcppExport SEXP _rminuit2_rminuit2_cpp(SEXP fnSEXP, SEXP parSEXP, SEXP errSEXP, SEXP lowerSEXP, SEXP upperSEXP, SEXP fixSEXP, SEXP optSEXP, SEXP envirSEXP, SEXP maxcallsSEXP, SEXP nsigmaSEXP) {

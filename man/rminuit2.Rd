@@ -4,8 +4,18 @@
 \alias{rminuit2}
 \title{Function Minimization and model fitting with Minuit2}
 \usage{
-rminuit2(mll, start = formals(mll), err = NULL, lower = NULL,
-  upper = NULL, fix = NULL, opt = "h", maxcalls = 0L, nsigma = 1, ...)
+rminuit2(
+  mll,
+  start = formals(mll),
+  err = NULL,
+  lower = NULL,
+  upper = NULL,
+  fix = NULL,
+  opt = "h",
+  maxcalls = 0L,
+  nsigma = 1,
+  ...
+)
 }
 \arguments{
 \item{mll}{The function to be minimized.
@@ -69,7 +79,7 @@ A list with the following components:
 }
 \description{
 Performs function minimization using
-\href{https://project-mathlibs.web.cern.ch/project-mathlibs/sw/Minuit2/html/index.html}{Minuit2}
+\href{https://root.cern.ch/doc/master/Minuit2Page.html}{Minuit2}
 }
 \examples{
 

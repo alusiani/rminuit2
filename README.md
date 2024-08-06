@@ -1,7 +1,7 @@
 ## rminuit2, numerical multidimensional function minimization with Minuit2
 
 R package with an interface for using the
-[Minuit2](https://root.cern.ch/root/html/MATH_MINUIT2_Index.html)
+[Minuit2](https://root.cern.ch/doc/master/Minuit2Page.html)
 minimization library, which is included in this package.
 
 Minuit2 is a library to perform robust numerical multidimensional

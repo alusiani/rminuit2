@@ -4,8 +4,18 @@
 \alias{rminuit2_par}
 \title{Function Minimization with Minuit2}
 \usage{
-rminuit2_par(mll, start, err = NULL, lower = NULL, upper = NULL,
-  fix = NULL, opt = "h", maxcalls = 0L, nsigma = 1, ...)
+rminuit2_par(
+  mll,
+  start,
+  err = NULL,
+  lower = NULL,
+  upper = NULL,
+  fix = NULL,
+  opt = "h",
+  maxcalls = 0L,
+  nsigma = 1,
+  ...
+)
 }
 \arguments{
 \item{mll}{The function to be minimized, which must have as first
@@ -81,7 +91,7 @@ A list with the following components:
 }
 \description{
 Performs function minimization using
-\href{https://project-mathlibs.web.cern.ch/project-mathlibs/sw/Minuit2/html/index.html}{Minuit2}
+\href{https://root.cern.ch/doc/master/Minuit2Page.html}{Minuit2}
 }
 \examples{
 #
@@ -130,4 +140,7 @@ fit.rc$cor
 }
 \seealso{
 rminuit2
+}
+\author{
+Alberto Lusiani, \email{alusiani@gmail.com}
 }

@@ -1,7 +1,7 @@
 #' Function Minimization and model fitting with Minuit2
 #'
 #' Performs function minimization using
-#' \href{https://project-mathlibs.web.cern.ch/project-mathlibs/sw/Minuit2/html/index.html}{Minuit2}
+#' \href{https://root.cern.ch/doc/master/Minuit2Page.html}{Minuit2}
 #'
 #' @param mll The function to be minimized.
 #'   The full potential of this package is attained when the function corresponds to
@@ -159,7 +159,7 @@ rminuit2 <- function(mll, start = formals(mll), err=NULL, lower=NULL, upper=NULL
 #' Function Minimization with Minuit2
 #'
 #' Performs function minimization using
-#' \href{https://project-mathlibs.web.cern.ch/project-mathlibs/sw/Minuit2/html/index.html}{Minuit2}
+#' \href{https://root.cern.ch/doc/master/Minuit2Page.html}{Minuit2}
 #'
 #' @inherit rminuit2
 #'
@@ -665,7 +665,7 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
 #' Function Minimization and model fitting with Minuit2
 #'
 #' Fit data to a model performing minus log-likelihood minimization using
-#' \href{https://project-mathlibs.web.cern.ch/project-mathlibs/sw/Minuit2/html/index.html}{Minuit2}
+#' \href{https://root.cern.ch/doc/master/Minuit2Page.html}{Minuit2}
 #' and assuming Gaussian uncertainties
 #'
 #' @inherit rminuit2

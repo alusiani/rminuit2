@@ -4,10 +4,23 @@
 \alias{rminuit2_expr}
 \title{Function Minimization and model fitting with Minuit2}
 \usage{
-rminuit2_expr(formula, start, data = NULL, weights = NULL, errors = NULL,
-  err = NULL, lower = NULL, upper = NULL, fix = NULL,
-  lh = c("Gaussian"), opt = "h", maxcalls = 0L, nsigma = 1,
-  rhs_vars = NULL, ...)
+rminuit2_expr(
+  formula,
+  start,
+  data = NULL,
+  weights = NULL,
+  errors = NULL,
+  err = NULL,
+  lower = NULL,
+  upper = NULL,
+  fix = NULL,
+  lh = c("Gaussian"),
+  opt = "h",
+  maxcalls = 0L,
+  nsigma = 1,
+  rhs_vars = NULL,
+  ...
+)
 }
 \arguments{
 \item{formula}{expression describing the model to be fitted to data}
@@ -92,7 +105,7 @@ A list with the following components:
 }
 \description{
 Fit data to a model performing minus log-likelihood minimization using
-\href{https://project-mathlibs.web.cern.ch/project-mathlibs/sw/Minuit2/html/index.html}{Minuit2}
+\href{https://root.cern.ch/doc/master/Minuit2Page.html}{Minuit2}
 and assuming Gaussian uncertainties
 }
 \examples{
@@ -129,4 +142,7 @@ fit.rc$cor
 }
 \seealso{
 rminuit2 rminuit2_par
+}
+\author{
+Alberto Lusiani, \email{alusiani@gmail.com}
 }
