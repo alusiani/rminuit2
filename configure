@@ -1,5 +1,5 @@
 #! /bin/sh
 #
-# configure Minuit2
+# configure is done in Makevars
 # only tested on modern Linux like Fedora 43
 #

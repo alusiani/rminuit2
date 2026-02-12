@@ -1,15 +1,20 @@
-CHECK_CXX = $(CXX)
+CHECK_CXX := $(firstword $(CXX))
 
-# 2. Check if the compiler exists and supports -std=c++20
-# We redirect stderr to dev/null so it fails silently if the flag is unknown
+# check if the compiler exists and supports -std=c++20
 HAS_CPP20 := $(shell if $(CHECK_CXX) -v --help 2>/dev/null | grep -q "std=c++20"; then echo "yes"; fi)
 
-# 3. Only define CXX20 if the check passed
+# only define CXX20 if the check passed. so far not working
 ifeq ($(HAS_CPP20),yes)
-  CXX20 = $(CHECK_CXX)
+  CXX20 := $(CHECK_CXX)
+  CXX20STD := -std=c++20
+  CXX20PICFLAGS := -fPIC
+  CXX20FLAGS := -g -O2 $(CXX20PICFLAGS)
+  # Export to make sure R's sub-processes see it
+  export CXX20
+  export CXX20STD
 endif
 
-# 1. Define Paths
+# Minuit2
 MINUIT_DIR = minuit2/math/minuit2
 MINUIT_INC = $(MINUIT_DIR)/dist/include/Minuit2
 
@@ -17,7 +22,7 @@ MINUIT_INC = $(MINUIT_DIR)/dist/include/Minuit2
 GLUE_OBJECTS = rminuit2.o RcppExports.o
 
 PKG_CPPFLAGS = \
-  -I$(MINUIT_INC) -I$(MINUIT_INC)/Minuit2 \
+  -I$(MINUIT_INC) \
   $(SHLIB_OPENMP_CXXFLAGS) -MMD -MP -MF $*.d
 
 PKG_LIBS = -L$(MINUIT_DIR)/dist/lib -Wl,-Bstatic -lMinuit2 -lMinuit2Math -Wl,-Bdynamic
