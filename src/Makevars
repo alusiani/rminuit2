@@ -1,5 +1,4 @@
-# Or just use the name directly if you prefer
-CHECK_CXX = x86_64-conda-linux-gnu-c++
+CHECK_CXX = $(CXX)
 
 # 2. Check if the compiler exists and supports -std=c++20
 # We redirect stderr to dev/null so it fails silently if the flag is unknown
