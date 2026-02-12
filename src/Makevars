@@ -20,7 +20,7 @@ PKG_CPPFLAGS = \
   -I$(MINUIT_INC) -I$(MINUIT_INC)/Minuit2 \
   $(SHLIB_OPENMP_CXXFLAGS) -MMD -MP -MF $*.d
 
-PKG_LIBS = -L$(MINUIT_DIR)/dist/lib -Wl,-Bstatic -lMinuit2 -lMinuit2Math -Wl,-Bdynamic -lVc
+PKG_LIBS = -L$(MINUIT_DIR)/dist/lib -Wl,-Bstatic -lMinuit2 -lMinuit2Math -Wl,-Bdynamic
 
 # Define the library location
 MINUIT_LIB = $(MINUIT_DIR)/dist/lib/libMinuit2.a
