@@ -1,69 +1,59 @@
-# 1. Define Paths
-MINUIT_DIR = minuit2
-MINUIT_SRC_DIR = $(MINUIT_DIR)/src
-MINUIT_INC_DIR = $(MINUIT_DIR)/inc
-MATH_SRC_DIR = $(MINUIT_DIR)/src/math
+# Or just use the name directly if you prefer
+CHECK_CXX = x86_64-conda-linux-gnu-c++
 
-# 3. List all Minuit2 source files 
-MINUIT_SOURCES = $(wildcard $(MINUIT_SRC_DIR)/*.cxx)
-MINUIT_OBJECTS = $(MINUIT_SOURCES:.cxx=.o)
-MATH_SOURCES = $(wildcard $(MATH_SRC_DIR)/*.cxx)
-MATH_OBJECTS = $(MATH_SOURCES:.cxx=.o)
+# 2. Check if the compiler exists and supports -std=c++20
+# We redirect stderr to dev/null so it fails silently if the flag is unknown
+HAS_CPP20 := $(shell if $(CHECK_CXX) -v --help 2>/dev/null | grep -q "std=c++20"; then echo "yes"; fi)
+
+# 3. Only define CXX20 if the check passed
+ifeq ($(HAS_CPP20),yes)
+  CXX20 = $(CHECK_CXX)
+endif
+
+# 1. Define Paths
+MINUIT_DIR = minuit2/math/minuit2
+MINUIT_INC = $(MINUIT_DIR)/dist/include/Minuit2
 
 # R Glue Code
 GLUE_OBJECTS = rminuit2.o RcppExports.o
 
-# compiler flags
-# PKG_CPPFLAGS = -I$(MINUIT_INC_DIR) -I$(MINUIT_INC_DIR)/Minuit2 \
-	# -I$(MINUIT_INC_DIR)/Math -I$(MINUIT_INC_DIR)/Fit \
-	# $(SHLIB_OPENMP_CXXFLAGS) -MMD
 PKG_CPPFLAGS = \
-  -I$(MINUIT_INC_DIR) -I$(MINUIT_INC_DIR) \
+  -I$(MINUIT_INC) -I$(MINUIT_INC)/Minuit2 \
   $(SHLIB_OPENMP_CXXFLAGS) -MMD -MP -MF $*.d
 
-# target-specific flags
-$(MINUIT_OBJECTS) $(MATH_OBJECTS): PKG_CPPFLAGS += -include assert_throw.h
-
-# final shared library
-# $(SHLIB) is the target R expects
-# PKG_LIBS = -L../inst/lib -lMinuit2 $(SHLIB_OPENMP_CXXFLAGS) $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)
-PKG_LIBS = -L../inst/lib -Wl,-Bstatic -lMinuit2 -lMinuit2Math -Wl,-Bdynamic -lVc
+PKG_LIBS = -L$(MINUIT_DIR)/dist/lib -Wl,-Bstatic -lMinuit2 -lMinuit2Math -Wl,-Bdynamic -lVc
 
 # Define the library location
-MINUIT_LIB = ../inst/lib/libMinuit2.a
-MATH_LIB = ../inst/lib/libMinuit2Math.a
+MINUIT_LIB = $(MINUIT_DIR)/dist/lib/libMinuit2.a
+MATH_LIB = $(MINUIT_DIR)/dist/lib/libMinuit2Math.a
 
 # 6. Dependency Files
-ALL_OBJS = $(MINUIT_OBJECTS) $(MATH_OBJECTS) $(GLUE_OBJECTS)
+ALL_OBJS = $(GLUE_OBJECTS)
 DEPS = $(ALL_OBJS:.o=.d)
 
 # --- Build Rules ---
 
 all: $(SHLIB)
 
-info:
-	@echo all sources $(MINUIT_SOURCES) $(MATH_SOURCES)
-
 # Include the generated dependency files
 -include $(DEPS)
 
 $(SHLIB): $(MINUIT_LIB) $(MATH_LIB) $(GLUE_OBJECTS)
 
-$(MINUIT_LIB): $(MINUIT_OBJECTS)
-	@mkdir -p ../inst/lib
-	$(AR) -rcs $@ $(MINUIT_OBJECTS)
+$(MINUIT_LIB) $(MATH_LIB):
+	mkdir -p $(MINUIT_DIR)/build
+	cd $(MINUIT_DIR)/build ; \
+	cmake .. \
+    -Dminuit2_standalone=ON \
+    -Dminuit2_omp=ON \
+    -DCMAKE_INSTALL_PREFIX="../dist" \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+		-DCMAKE_CXX_FLAGS="-include ${PWD}/assert_throw.h" \
+		; \
+	make ; \
+	make install
 
-$(MATH_LIB): $(MATH_OBJECTS)
-	@mkdir -p ../inst/lib
-	$(AR) -rcs $@ $(MATH_OBJECTS)
-
-# Combined Rule for all Minuit and Math objects
-# Syntax: <targets> : <target-pattern> : <prerequisite-pattern> <extra-deps>
-$(MINUIT_OBJECTS) $(MATH_OBJECTS): %.o: %.cxx $(MINUIT_INC_DIR)/assert_throw.h
-	$(CXX) $(ALL_CPPFLAGS) $(ALL_CXXFLAGS) -include assert_throw.h -c $< -o $@
-
-# I can't understand why there is a first failed compilation before
-# this rule holds. That does not prevent compilation in the end tough.
 rminuit2.o: %.o: %.cpp
 	$(CXX) $(ALL_CPPFLAGS) $(ALL_CXXFLAGS) -I. -c $< -o $@
 
@@ -77,8 +67,8 @@ rminuit2.o: %.o: %.cpp
 
 # Cleanup
 clean:
-	@\rm -f \
-	  $(MINUIT_OBJECTS) $(MATH_OBJECTS) $(GLUE_OBJECTS) \
+	@\rm -rf \
+	  $(GLUE_OBJECTS) \
 		$(DEPS) $(MINUIT_LIB) $(MATH_LIB) $(SHLIB) \
 		a-RcppExports.d a-rminuit2.d \
-		../inst
+		$(MINUIT_DIR)/build $(MINUIT_DIR)/dist

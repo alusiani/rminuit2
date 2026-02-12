@@ -4,5 +4,5 @@
 #
 
 \rm -rf inst
-\rm -f src/RcppExports.o src/rminuit2.o
+\rm -f src/RcppExports.o src/rminuit2.o src/rminuit2.so
 (cd src; make -f Makevars clean)

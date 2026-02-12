@@ -1,0 +1,37 @@
+# ROOT requirements for third-party Python packages
+
+# PyROOT: Interoperability with numpy arrays
+numpy
+pandas
+
+# TMVA: SOFIE
+dm-sonnet # used for GNNs
+graph_nets
+onnx
+onnxscript
+packaging
+
+# TMVA: PyMVA interfaces
+scikit-learn
+tensorflow
+torch
+xgboost
+
+# PyROOT: ROOT.Numba.Declare decorator
+numba
+cffi
+
+# Notebooks: ROOT C++ kernel
+notebook>=4.4.1
+metakernel>=0.20.0
+
+# Distributed RDataFrame
+pyspark # Spark backend
+dask>=2022.08.1 # Dask backend
+distributed>=2022.08.1 # Dask backend
+
+# JsMVA: Jupyter notebook magic for TMVA
+ipywidgets
+
+# Unified Histogram Interface (UHI)
+uhi

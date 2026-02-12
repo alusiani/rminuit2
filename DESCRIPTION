@@ -9,4 +9,3 @@ Imports: Rcpp (>= 1.1.1)
 LinkingTo: Rcpp
 Encoding: UTF-8
 RoxygenNote: 7.3.3
-SystemRequirements: C++20
