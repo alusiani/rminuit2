@@ -15,45 +15,42 @@
 
 namespace ROOT {
 
-   namespace Minuit2 {
-
+namespace Minuit2 {
 
 class GaussRandomGen {
 
 public:
+   GaussRandomGen() = default;
 
-  GaussRandomGen() : fMean(0.), fSigma(1.) {}
+   GaussRandomGen(double mean, double sigma) : fMean(mean), fSigma(sigma) {}
 
-  GaussRandomGen(double mean, double sigma) : fMean(mean), fSigma(sigma) {}
+   double Mean() const { return fMean; }
 
-  ~GaussRandomGen() {}
+   double Sigma() const { return fSigma; }
 
-  double Mean() const {return fMean;}
+   double operator()() const
+   {
+      // need to random variables flat in [0,1)
+      double r1 = std::rand() / double(RAND_MAX);
+      double r2 = std::rand() / double(RAND_MAX);
 
-  double Sigma() const {return fSigma;}
+      constexpr double two_pi = 2 * 3.14159265358979323846; // M_PI is not standard
 
-  double operator()() const {
-    //need to random variables flat in [0,1)
-    double r1 = std::rand()/double(RAND_MAX);
-    double r2 = std::rand()/double(RAND_MAX);
+      // two possibilities to generate a random gauss variable (m=0,s=1)
+      double s = std::sqrt(-2. * std::log(1. - r1)) * std::cos(two_pi * r2);
+      //     double s = sqrt(-2.*log(1.-r1))*sin(2.*M_PI*r2);
 
-    //two possibilities to generate a random gauss variable (m=0,s=1)
-    double s = sqrt(-2.*log(1.-r1))*cos(2.*M_PI*r2);
-//     double s = sqrt(-2.*log(1.-r1))*sin(2.*M_PI*r2);
-
-    //scale to desired gauss
-    return Sigma()*s + Mean();
-  }
+      // scale to desired gauss
+      return Sigma() * s + Mean();
+   }
 
 private:
-
-  double fMean;
-  double fSigma;
-
+   double fMean = 0.;
+   double fSigma = 1.;
 };
 
-  }  // namespace Minuit2
+} // namespace Minuit2
 
-}  // namespace ROOT
+} // namespace ROOT
 
-#endif //MN_GaussRandomGen_H_
+#endif // MN_GaussRandomGen_H_

@@ -12,8 +12,7 @@
 
 namespace ROOT {
 
-   namespace Minuit2 {
-
+namespace Minuit2 {
 
 class MinimumState;
 class MinimumError;
@@ -24,21 +23,13 @@ class MnMachinePrecision;
    by adding extra terms in the diagonal
  */
 class MnPosDef {
-
 public:
-
-  MnPosDef() {}
-
-  ~MnPosDef() {}
-
-  MinimumState operator()(const MinimumState&, const MnMachinePrecision&) const;
-  MinimumError operator()(const MinimumError&, const MnMachinePrecision&) const;
-private:
-
+   MinimumState operator()(const MinimumState &, const MnMachinePrecision &) const;
+   MinimumError operator()(const MinimumError &, const MnMachinePrecision &) const;
 };
 
-  }  // namespace Minuit2
+} // namespace Minuit2
 
-}  // namespace ROOT
+} // namespace ROOT
 
-#endif  // ROOT_Minuit2_MnPosDef
+#endif // ROOT_Minuit2_MnPosDef

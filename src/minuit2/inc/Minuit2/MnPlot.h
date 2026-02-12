@@ -11,13 +11,16 @@
 #define ROOT_Minuit2_MnPlot
 
 #include "Minuit2/MnConfig.h"
+
+#include <ROOT/RSpan.hxx>
+
+#include <algorithm>
 #include <vector>
 #include <utility>
 
 namespace ROOT {
 
-   namespace Minuit2 {
-
+namespace Minuit2 {
 
 /** MnPlot produces a text-screen graphical output of (x,y) points, e.g.
     from Scan or Contours.
@@ -26,30 +29,26 @@ namespace ROOT {
 class MnPlot {
 
 public:
+   MnPlot() = default;
 
-  MnPlot() : fPageWidth(80), fPageLength(30) {}
+   MnPlot(unsigned int width, unsigned int length)
+      : fPageWidth(std::min(width, 120u)), fPageLength(std::min(length, 56u))
+   {
+   }
 
-  MnPlot(unsigned int width, unsigned int length) : fPageWidth(width), fPageLength(length) {
-    if(fPageWidth > 120) fPageWidth = 120;
-    if(fPageLength > 56) fPageLength = 56;
-  }
+   void operator()(std::span<const std::pair<double, double>> ) const;
+   void operator()(double, double, std::span<const std::pair<double, double>> ) const;
 
-  ~MnPlot() {}
-
-  void operator()(const std::vector<std::pair<double,double> >&) const;
-  void operator()(double, double, const std::vector<std::pair<double,double> >&) const;
-
-  unsigned int Width() const {return fPageWidth;}
-  unsigned int Length() const {return fPageLength;}
+   unsigned int Width() const { return fPageWidth; }
+   unsigned int Length() const { return fPageLength; }
 
 private:
-
-  unsigned int fPageWidth;
-  unsigned int fPageLength;
+   unsigned int fPageWidth = 80;
+   unsigned int fPageLength = 30;
 };
 
-  }  // namespace Minuit2
+} // namespace Minuit2
 
-}  // namespace ROOT
+} // namespace ROOT
 
-#endif  // ROOT_Minuit2_MnPlot
+#endif // ROOT_Minuit2_MnPlot

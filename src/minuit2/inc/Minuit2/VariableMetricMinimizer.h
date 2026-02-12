@@ -17,7 +17,10 @@
 
 namespace ROOT {
 
-   namespace Minuit2 {
+namespace Minuit2 {
+
+class BFGSMinimizerType {
+};
 
 //______________________________________________________________________________
 /**
@@ -30,24 +33,27 @@ namespace ROOT {
 class VariableMetricMinimizer : public ModularFunctionMinimizer {
 
 public:
+   class BFGSType {
+   };
 
-   VariableMetricMinimizer() : fMinSeedGen(MnSeedGenerator()),
-                               fMinBuilder(VariableMetricBuilder()) {}
+   VariableMetricMinimizer() = default;
 
-   ~VariableMetricMinimizer() {}
+   VariableMetricMinimizer(BFGSType)
+      : fMinSeedGen(MnSeedGenerator()), fMinBuilder(VariableMetricBuilder(VariableMetricBuilder::kBFGS))
+   {
+   }
 
-   const MinimumSeedGenerator& SeedGenerator() const {return fMinSeedGen;}
-   const MinimumBuilder& Builder() const {return fMinBuilder;}
-   MinimumBuilder& Builder()  {return fMinBuilder;}
+   const MinimumSeedGenerator &SeedGenerator() const override { return fMinSeedGen; }
+   const MinimumBuilder &Builder() const override { return fMinBuilder; }
+   MinimumBuilder &Builder() override { return fMinBuilder; }
 
 private:
-
    MnSeedGenerator fMinSeedGen;
    VariableMetricBuilder fMinBuilder;
 };
 
-  }  // namespace Minuit2
+} // namespace Minuit2
 
-}  // namespace ROOT
+} // namespace ROOT
 
-#endif  // ROOT_Minuit2_VariableMetricMinimizer
+#endif // ROOT_Minuit2_VariableMetricMinimizer

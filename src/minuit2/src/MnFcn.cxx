@@ -8,32 +8,61 @@
  **********************************************************************/
 
 #include "Minuit2/MnFcn.h"
-#include "Minuit2/FCNBase.h"
-#include "Minuit2/MnVectorTransform.h"
+#include "Minuit2/MnUserTransformation.h"
 
 namespace ROOT {
 
-   namespace Minuit2 {
+namespace Minuit2 {
 
-
-MnFcn::~MnFcn() {
-   //   std::cout<<"Total number of calls to FCN: "<<fNumCall<<std::endl;
-}
-
-double MnFcn::operator()(const MnAlgebraicVector& v) const {
+double MnFcn::CallWithoutDoingTrafo(const MnAlgebraicVector &v) const
+{
    // evaluate FCN converting from from MnAlgebraicVector to std::vector
    fNumCall++;
-   return fFCN(MnVectorTransform()(v));
+   return fFCN(std::vector<double>{v.Data(), v.Data() + v.size()});
 }
 
-// double MnFcn::operator()(const std::vector<double>& par) const {
-//     return fFCN(par);
-// }
+// Calling the underlying function with the transformed parameters.
+// For internal use in the Minuit2 implementation.
+double MnFcn::CallWithTransformedParams(std::vector<double> const &vpar) const
+{
+   // call Fcn function transforming from a MnAlgebraicVector of internal values to a std::vector of external ones
+   fNumCall++;
 
-double MnFcn::ErrorDef() const {return fFCN.Up();}
+   return Fcn()(vpar);
+}
 
-double MnFcn::Up() const {return fFCN.Up();}
+MnFcnCaller::MnFcnCaller(const MnFcn &mfcn) : fMfcn{mfcn}, fDoInt2ext{static_cast<bool>(mfcn.Trafo())}
+{
+   if (!fDoInt2ext)
+      return;
 
-   }  // namespace Minuit2
+   MnUserTransformation const &transform = *fMfcn.Trafo();
 
-}  // namespace ROOT
+   // get first initial values of parameter (in case some one is fixed)
+   fVpar.assign(transform.InitialParValues().begin(), transform.InitialParValues().end());
+}
+
+double MnFcnCaller::operator()(const MnAlgebraicVector &v)
+{
+   if (!fDoInt2ext)
+      return fMfcn.CallWithoutDoingTrafo(v);
+
+   MnUserTransformation const &transform = *fMfcn.Trafo();
+
+   bool firstCall = fLastInput.size() != v.size();
+
+   fLastInput.resize(v.size());
+
+   for (unsigned int i = 0; i < v.size(); i++) {
+      if (firstCall || fLastInput[i] != v(i)) {
+         fVpar[transform.ExtOfInt(i)] = transform.Int2ext(i, v(i));
+         fLastInput[i] = v(i);
+      }
+   }
+
+   return fMfcn.CallWithTransformedParams(fVpar);
+}
+
+} // namespace Minuit2
+
+} // namespace ROOT

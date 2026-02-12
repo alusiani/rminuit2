@@ -14,8 +14,7 @@
 
 namespace ROOT {
 
-   namespace Minuit2 {
-
+namespace Minuit2 {
 
 class MnUserCovariance;
 class MinimumError;
@@ -25,25 +24,16 @@ class MinimumError;
    removing the corresponding row and index
  */
 class MnCovarianceSqueeze {
-
 public:
+   MnUserCovariance operator()(const MnUserCovariance &, unsigned int) const;
 
-  MnCovarianceSqueeze() {}
+   MinimumError operator()(const MinimumError &, unsigned int) const;
 
-  ~MnCovarianceSqueeze() {}
-
-  MnUserCovariance operator()(const MnUserCovariance&, unsigned int) const;
-
-  MinimumError operator()(const MinimumError&, unsigned int) const;
-
-  MnAlgebraicSymMatrix operator()(const MnAlgebraicSymMatrix&, unsigned int) const;
-
-private:
-
+   MnAlgebraicSymMatrix operator()(const MnAlgebraicSymMatrix &, unsigned int) const;
 };
 
-  }  // namespace Minuit2
+} // namespace Minuit2
 
-}  // namespace ROOT
+} // namespace ROOT
 
-#endif  // ROOT_Minuit2_MnCovarianceSqueeze
+#endif // ROOT_Minuit2_MnCovarianceSqueeze

@@ -8,23 +8,14 @@
  **********************************************************************/
 
 #include "Minuit2/MinimumBuilder.h"
-
-// #if defined(DEBUG) || defined(WARNINGMSG)
 #include "Minuit2/MnPrint.h"
-// #endif
-
 
 namespace ROOT {
 
-   namespace Minuit2 {
+namespace Minuit2 {
 
-      MinimumBuilder::MinimumBuilder() :
-         fPrintLevel(MnPrint::Level()),
-         fStorageLevel(1),
-         fTracer(0)
-      {}
+MinimumBuilder::MinimumBuilder() : fPrintLevel(MnPrint::GlobalLevel()), fStorageLevel(1), fTracer(nullptr) {}
 
+} // namespace Minuit2
 
-   }  // namespace Minuit2
-
-}  // namespace ROOT
+} // namespace ROOT

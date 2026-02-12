@@ -11,34 +11,28 @@
 #define ROOT_Minuit2_MnSeedGenerator
 
 #include "Minuit2/MinimumSeedGenerator.h"
+#include "Minuit2/AnalyticalGradientCalculator.h"
 
 namespace ROOT {
 
-   namespace Minuit2 {
-
+namespace Minuit2 {
 
 /** concrete implementation of the MinimumSeedGenerator interface; used within
     ModularFunctionMinimizer;
  */
 
 class MnSeedGenerator : public MinimumSeedGenerator {
-
 public:
-
-  MnSeedGenerator() {}
-
-  virtual ~MnSeedGenerator() {}
-
-  virtual MinimumSeed operator()(const MnFcn&, const GradientCalculator&, const MnUserParameterState&, const MnStrategy&) const;
-
-  virtual MinimumSeed operator()(const MnFcn&, const AnalyticalGradientCalculator&, const MnUserParameterState&, const MnStrategy&) const;
+   MinimumSeed operator()(const MnFcn &, const GradientCalculator &, const MnUserParameterState &,
+                          const MnStrategy &) const override;
 
 private:
-
+   MinimumSeed CallWithAnalyticalGradientCalculator(const MnFcn &, const AnalyticalGradientCalculator &,
+                                                    const MnUserParameterState &, const MnStrategy &) const;
 };
 
-  }  // namespace Minuit2
+} // namespace Minuit2
 
-}  // namespace ROOT
+} // namespace ROOT
 
-#endif  // ROOT_Minuit2_MnSeedGenerator
+#endif // ROOT_Minuit2_MnSeedGenerator

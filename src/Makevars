@@ -1,36 +1,84 @@
-## Hey Emacs make this a -*- mode: makefile; -*- file 
+# 1. Define Paths
+MINUIT_DIR = minuit2
+MINUIT_SRC_DIR = $(MINUIT_DIR)/src
+MINUIT_INC_DIR = $(MINUIT_DIR)/inc
+MATH_SRC_DIR = $(MINUIT_DIR)/src/math
 
-##--- default
-PKG_LIBS = $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS) $(SHLIB_OPENMP_CXXFLAGS)
+# 3. List all Minuit2 source files 
+MINUIT_SOURCES = $(wildcard $(MINUIT_SRC_DIR)/*.cxx)
+MINUIT_OBJECTS = $(MINUIT_SOURCES:.cxx=.o)
+MATH_SOURCES = $(wildcard $(MATH_SRC_DIR)/*.cxx)
+MATH_OBJECTS = $(MATH_SOURCES:.cxx=.o)
 
-CXX_STD = CXX17
+# R Glue Code
+GLUE_OBJECTS = rminuit2.o RcppExports.o
 
-PKG_CPPFLAGS = -I../inst/include -I$(PWD)
+# compiler flags
+# PKG_CPPFLAGS = -I$(MINUIT_INC_DIR) -I$(MINUIT_INC_DIR)/Minuit2 \
+	# -I$(MINUIT_INC_DIR)/Math -I$(MINUIT_INC_DIR)/Fit \
+	# $(SHLIB_OPENMP_CXXFLAGS) -MMD
+PKG_CPPFLAGS = \
+  -I$(MINUIT_INC_DIR) -I$(MINUIT_INC_DIR) \
+  $(SHLIB_OPENMP_CXXFLAGS) -MMD -MP -MF $*.d
 
-## CPPFLAGS_ADD = $(shell R CMD config --cppflags)
+# target-specific flags
+$(MINUIT_OBJECTS) $(MATH_OBJECTS): PKG_CPPFLAGS += -include assert_throw.h
 
-##--- -fno-gnu-unique allows reloading in Linux
-PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS) -fno-gnu-unique
+# final shared library
+# $(SHLIB) is the target R expects
+# PKG_LIBS = -L../inst/lib -lMinuit2 $(SHLIB_OPENMP_CXXFLAGS) $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)
+PKG_LIBS = -L../inst/lib -Wl,-Bstatic -lMinuit2 -lMinuit2Math -Wl,-Bdynamic -lVc
 
-PKG_LIBS = -L../inst/lib -Wl,-Bstatic -lMinuit2 -Wl,-Bdynamic
+# Define the library location
+MINUIT_LIB = ../inst/lib/libMinuit2.a
+MATH_LIB = ../inst/lib/libMinuit2Math.a
 
-.PHONY: all minuit2 preclean
+# 6. Dependency Files
+ALL_OBJS = $(MINUIT_OBJECTS) $(MATH_OBJECTS) $(GLUE_OBJECTS)
+DEPS = $(ALL_OBJS:.o=.d)
 
-all: minuit2 $(SHLIB) preclean
+# --- Build Rules ---
 
-$(SHLIB): minuit2
+all: $(SHLIB)
 
-minuit2:
-	@echo PKG_LIBS $(PKG_LIBS)
-	@echo PKG_CPPFLAGS $(PKG_CPPFLAGS)
-	@echo PKG_CXXFLAGS $(PKG_CXXFLAGS)
-	(cd minuit2 && $(MAKE) CXX="$(CXX17) $(CXX17STD)" \
-          CXXFLAGS="$(CXX17FLAGS) $(CXX17PICFLAGS)" CPPFLAGS="$(CPPFLAGS) $(PKG_CPPFLAGS)")
-	(cd minuit2 && $(MAKE) install DESTDIR=$(PWD)/../inst)
+info:
+	@echo all sources $(MINUIT_SOURCES) $(MATH_SOURCES)
 
-preclean: $(SHLIB)
-	$(RM) -rf ../inst
+# Include the generated dependency files
+-include $(DEPS)
 
+$(SHLIB): $(MINUIT_LIB) $(MATH_LIB) $(GLUE_OBJECTS)
+
+$(MINUIT_LIB): $(MINUIT_OBJECTS)
+	@mkdir -p ../inst/lib
+	$(AR) -rcs $@ $(MINUIT_OBJECTS)
+
+$(MATH_LIB): $(MATH_OBJECTS)
+	@mkdir -p ../inst/lib
+	$(AR) -rcs $@ $(MATH_OBJECTS)
+
+# Combined Rule for all Minuit and Math objects
+# Syntax: <targets> : <target-pattern> : <prerequisite-pattern> <extra-deps>
+$(MINUIT_OBJECTS) $(MATH_OBJECTS): %.o: %.cxx $(MINUIT_INC_DIR)/assert_throw.h
+	$(CXX) $(ALL_CPPFLAGS) $(ALL_CXXFLAGS) -include assert_throw.h -c $< -o $@
+
+# I can't understand why there is a first failed compilation before
+# this rule holds. That does not prevent compilation in the end tough.
+rminuit2.o: %.o: %.cpp
+	$(CXX) $(ALL_CPPFLAGS) $(ALL_CXXFLAGS) -I. -c $< -o $@
+
+# Generic rule for C++ files
+%.o: %.cxx
+	$(CXX) $(ALL_CPPFLAGS) $(ALL_CXXFLAGS) -c $< -o $@
+
+# R / Rcpp does that by default apparently
+# %.o: %.cpp
+# 	$(CXX) $(ALL_CPPFLAGS) $(ALL_CXXFLAGS) -c $< -o $@
+
+# Cleanup
 clean:
-	(cd minuit2 && $(MAKE) distclean)
-	$(RM) -rf ../inst
+	@\rm -f \
+	  $(MINUIT_OBJECTS) $(MATH_OBJECTS) $(GLUE_OBJECTS) \
+		$(DEPS) $(MINUIT_LIB) $(MATH_LIB) $(SHLIB) \
+		a-RcppExports.d a-rminuit2.d \
+		../inst

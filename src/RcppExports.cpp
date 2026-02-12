@@ -11,22 +11,22 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // rminuit2_cpp
-Rcpp::List rminuit2_cpp(SEXP fn, Rcpp::NumericVector par, Rcpp::NumericVector err, Rcpp::NumericVector lower, Rcpp::NumericVector upper, Rcpp::IntegerVector fix, Rcpp::StringVector opt, SEXP envir, Rcpp::IntegerVector maxcalls, Rcpp::NumericVector nsigma);
-RcppExport SEXP _rminuit2_rminuit2_cpp(SEXP fnSEXP, SEXP parSEXP, SEXP errSEXP, SEXP lowerSEXP, SEXP upperSEXP, SEXP fixSEXP, SEXP optSEXP, SEXP envirSEXP, SEXP maxcallsSEXP, SEXP nsigmaSEXP) {
+List rminuit2_cpp(SEXP fn, SEXP env, NumericVector par, NumericVector err, NumericVector lower, NumericVector upper, IntegerVector fix, StringVector opt, IntegerVector maxcalls, NumericVector nsigma);
+RcppExport SEXP _rminuit2_rminuit2_cpp(SEXP fnSEXP, SEXP envSEXP, SEXP parSEXP, SEXP errSEXP, SEXP lowerSEXP, SEXP upperSEXP, SEXP fixSEXP, SEXP optSEXP, SEXP maxcallsSEXP, SEXP nsigmaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< SEXP >::type fn(fnSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type par(parSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type err(errSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type lower(lowerSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type upper(upperSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type fix(fixSEXP);
-    Rcpp::traits::input_parameter< Rcpp::StringVector >::type opt(optSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type envir(envirSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type maxcalls(maxcallsSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type nsigma(nsigmaSEXP);
-    rcpp_result_gen = Rcpp::wrap(rminuit2_cpp(fn, par, err, lower, upper, fix, opt, envir, maxcalls, nsigma));
+    Rcpp::traits::input_parameter< SEXP >::type env(envSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type par(parSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type err(errSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type lower(lowerSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type upper(upperSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type fix(fixSEXP);
+    Rcpp::traits::input_parameter< StringVector >::type opt(optSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type maxcalls(maxcallsSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type nsigma(nsigmaSEXP);
+    rcpp_result_gen = Rcpp::wrap(rminuit2_cpp(fn, env, par, err, lower, upper, fix, opt, maxcalls, nsigma));
     return rcpp_result_gen;
 END_RCPP
 }

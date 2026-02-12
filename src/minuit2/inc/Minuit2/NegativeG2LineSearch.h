@@ -12,8 +12,7 @@
 
 namespace ROOT {
 
-   namespace Minuit2 {
-
+namespace Minuit2 {
 
 class MnFcn;
 class MinimumState;
@@ -28,23 +27,15 @@ class FunctionGradient;
  */
 
 class NegativeG2LineSearch {
-
 public:
+   MinimumState
+   operator()(const MnFcn &, const MinimumState &, const GradientCalculator &, const MnMachinePrecision &) const;
 
-  NegativeG2LineSearch() {}
-
-  ~NegativeG2LineSearch() {}
-
-  MinimumState operator()(const MnFcn&, const MinimumState&, const  GradientCalculator&, const MnMachinePrecision&) const;
-
-  bool HasNegativeG2(const FunctionGradient&, const MnMachinePrecision&) const;
-
-private:
-
+   bool HasNegativeG2(const FunctionGradient &, const MnMachinePrecision &) const;
 };
 
-  }  // namespace Minuit2
+} // namespace Minuit2
 
-}  // namespace ROOT
+} // namespace ROOT
 
-#endif  // ROOT_Minuit2_NegativeG2LineSearch
+#endif // ROOT_Minuit2_NegativeG2LineSearch

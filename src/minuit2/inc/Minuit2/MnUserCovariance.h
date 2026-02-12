@@ -10,18 +10,16 @@
 #ifndef ROOT_Minuit2_MnUserCovariance
 #define ROOT_Minuit2_MnUserCovariance
 
-#include "assert_throw.h"
-
 #include "Minuit2/MnConfig.h"
+
+#include <ROOT/RSpan.hxx>
+
 #include <vector>
 #include <cassert>
-#include <stdexcept>
-#include <string>
 
 namespace ROOT {
 
-   namespace Minuit2 {
-
+namespace Minuit2 {
 
 /**
    Class containing the covariance matrix data represented as a vector of
@@ -31,85 +29,60 @@ namespace ROOT {
 class MnUserCovariance {
 
 public:
-
-  MnUserCovariance() : fData(std::vector<double>()), fNRow(0) {}
+   MnUserCovariance() = default;
 
    // safe constructor using std::vector
-  MnUserCovariance(const std::vector<double>& data, unsigned int nrow) :
-    fData(data), fNRow(nrow) {
-#ifndef assert_throw_h
-    assert(data.size() == nrow*(nrow+1)/2);
-#else
-    assert_throw(data.size() == nrow*(nrow+1)/2, "fatal, MnUserCovariance() data has wrong size");
-#endif
-  }
+   MnUserCovariance(std::span<const double> data, unsigned int nrow) : fData(data.begin(), data.end()), fNRow(nrow)
+   {
+      assert(data.size() == nrow * (nrow + 1) / 2);
+   }
 
    // unsafe constructor using just a pointer
-  MnUserCovariance(const double * data, unsigned int nrow) :
-     fData(std::vector<double>(data,data+nrow*(nrow+1)/2)),
-     fNRow(nrow) {
-  }
+   MnUserCovariance(const double *data, unsigned int nrow)
+      : fData(std::vector<double>(data, data + nrow * (nrow + 1) / 2)), fNRow(nrow)
+   {
+   }
 
-  MnUserCovariance(unsigned int n) :
-    fData(std::vector<double>(n*(n+1)/2, 0.)), fNRow(n) {}
+   MnUserCovariance(unsigned int n) : fData(std::vector<double>(n * (n + 1) / 2, 0.)), fNRow(n) {}
 
-  ~MnUserCovariance() {}
+   double operator()(unsigned int row, unsigned int col) const
+   {
+      assert(row < fNRow && col < fNRow);
+      if (row > col)
+         return fData[col + row * (row + 1) / 2];
+      else
+         return fData[row + col * (col + 1) / 2];
+   }
 
-  MnUserCovariance(const MnUserCovariance& cov) : fData(cov.fData), fNRow(cov.fNRow) {}
+   double &operator()(unsigned int row, unsigned int col)
+   {
+      assert(row < fNRow && col < fNRow);
+      if (row > col)
+         return fData[col + row * (row + 1) / 2];
+      else
+         return fData[row + col * (col + 1) / 2];
+   }
 
-  MnUserCovariance& operator=(const MnUserCovariance& cov) {
-    if(this != &cov) {
-      fData = cov.fData;
-      fNRow = cov.fNRow;
-    }
-    return *this;
-  }
+   void Scale(double f)
+   {
+      for (unsigned int i = 0; i < fData.size(); i++)
+         fData[i] *= f;
+   }
 
-  double operator()(unsigned int row, unsigned int col) const {
-#ifndef assert_throw_h
-    assert(row < fNRow && col < fNRow);
-#else
-    assert_throw(row < fNRow && col < fNRow, "fatal, MnUserCovariance(), row/col > nrow = " + std::to_string(fNRow));
-#endif
-    if(row > col)
-      return fData[col+row*(row+1)/2];
-    else
-      return fData[row+col*(col+1)/2];
-  }
+   const std::vector<double> &Data() const { return fData; }
 
-  double& operator()(unsigned int row, unsigned int col) {
-#ifndef assert_throw_h
-    assert(row < fNRow && col < fNRow);
-#else
-    assert_throw(row < fNRow && col < fNRow, "fatal, MnUserCovariance(), row/col > nrow =" + std::to_string(fNRow));
-#endif
-    if(row > col)
-      return fData[col+row*(row+1)/2];
-    else
-      return fData[row+col*(col+1)/2];
-  }
+   unsigned int Nrow() const { return fNRow; }
 
-  void Scale(double f) {
-    for(unsigned int i = 0; i < fData.size(); i++) fData[i] *= f;
-  }
-
-  const std::vector<double>& Data() const {return fData;}
-
-  unsigned int Nrow() const {return fNRow;}
-
-// VC 7.1 warning: conversion from size_t to unsigned int
-  unsigned int size() const
-  { return static_cast < unsigned int > ( fData.size() );
-  }
+   // VC 7.1 warning: conversion from size_t to unsigned int
+   unsigned int size() const { return static_cast<unsigned int>(fData.size()); }
 
 private:
-
-  std::vector<double> fData;
-  unsigned int fNRow;
+   std::vector<double> fData;
+   unsigned int fNRow = 0;
 };
 
-  }  // namespace Minuit2
+} // namespace Minuit2
 
-}  // namespace ROOT
+} // namespace ROOT
 
-#endif  // ROOT_Minuit2_MnUserCovariance
+#endif // ROOT_Minuit2_MnUserCovariance

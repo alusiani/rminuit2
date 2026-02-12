@@ -12,28 +12,18 @@
 
 namespace ROOT {
 
-   namespace Minuit2 {
-
+namespace Minuit2 {
 
 class FunctionGradient;
 class MinimumError;
 
 class VariableMetricEDMEstimator {
-
 public:
-
-  VariableMetricEDMEstimator() {}
-
-  ~VariableMetricEDMEstimator() {}
-
-  double Estimate(const FunctionGradient&, const MinimumError&) const;
-
-private:
-
+   double Estimate(const FunctionGradient &, const MinimumError &) const;
 };
 
-  }  // namespace Minuit2
+} // namespace Minuit2
 
-}  // namespace ROOT
+} // namespace ROOT
 
-#endif  // ROOT_Minuit2_VariableMetricEDMEstimator
+#endif // ROOT_Minuit2_VariableMetricEDMEstimator

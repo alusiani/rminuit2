@@ -1,6 +1,5 @@
 #! /bin/sh
 #
 # configure Minuit2
+# only tested on modern Linux like Fedora 43
 #
-cd src/minuit2
-./configure --prefix="/"

@@ -14,44 +14,54 @@
 #include "Minuit2/MinimumBuilder.h"
 #include "Minuit2/VariableMetricEDMEstimator.h"
 #include "Minuit2/DavidonErrorUpdator.h"
+#include "Minuit2/BFGSErrorUpdator.h"
 
 #include <vector>
+#include <memory>
 
 namespace ROOT {
 
-   namespace Minuit2 {
+namespace Minuit2 {
 
 /**
    Build (find) function minimum using the Variable Metric method (MIGRAD)
-
+   Two possible error updators can be chosen
+    - Davidon : this is the standard formula used in Migrad
+    - BFGS this is the new formula based on BFGS algorithm
+      (see Broyden–Fletcher–Goldfarb–Shanno algorithm
+      https://en.wikipedia.org/wiki/Broyden–Fletcher–Goldfarb–Shanno_algorithm )
  */
 class VariableMetricBuilder : public MinimumBuilder {
 
 public:
+   enum ErrorUpdatorType { kDavidon, kBFGS };
 
+   VariableMetricBuilder(ErrorUpdatorType type = kDavidon) : fEstimator(VariableMetricEDMEstimator())
+   {
+      if (type == kBFGS)
+         fErrorUpdator = std::unique_ptr<MinimumErrorUpdator>(new BFGSErrorUpdator());
+      else
+         fErrorUpdator = std::unique_ptr<MinimumErrorUpdator>(new DavidonErrorUpdator());
+   }
 
-   VariableMetricBuilder() : fEstimator(VariableMetricEDMEstimator()),
-                             fErrorUpdator(DavidonErrorUpdator()) {}
+   FunctionMinimum Minimum(const MnFcn &, const GradientCalculator &, const MinimumSeed &, const MnStrategy &,
+                                   unsigned int, double) const override;
 
-   ~VariableMetricBuilder() {}
+   FunctionMinimum Minimum(const MnFcn &, const GradientCalculator &, const MinimumSeed &, std::vector<MinimumState> &,
+                           unsigned int, double) const;
 
-   virtual FunctionMinimum Minimum(const MnFcn&, const GradientCalculator&, const MinimumSeed&, const MnStrategy&, unsigned int, double) const;
+   const VariableMetricEDMEstimator &Estimator() const { return fEstimator; }
+   const MinimumErrorUpdator &ErrorUpdator() const { return *fErrorUpdator; }
 
-   FunctionMinimum Minimum(const MnFcn&, const GradientCalculator&, const MinimumSeed&, std::vector<MinimumState> &, unsigned int, double) const;
-
-   const VariableMetricEDMEstimator& Estimator() const {return fEstimator;}
-   const DavidonErrorUpdator& ErrorUpdator() const {return fErrorUpdator;}
-
-   void AddResult(std::vector<MinimumState>& result, const MinimumState & state) const;
+   void AddResult(std::vector<MinimumState> &result, const MinimumState &state) const;
 
 private:
-
    VariableMetricEDMEstimator fEstimator;
-   DavidonErrorUpdator fErrorUpdator;
+   std::shared_ptr<MinimumErrorUpdator> fErrorUpdator;
 };
 
-  }  // namespace Minuit2
+} // namespace Minuit2
 
-}  // namespace ROOT
+} // namespace ROOT
 
-#endif  // ROOT_Minuit2_VariableMetricBuilder
+#endif // ROOT_Minuit2_VariableMetricBuilder

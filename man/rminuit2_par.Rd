@@ -21,7 +21,7 @@ rminuit2_par(
 \item{mll}{The function to be minimized, which must have as first
   argument a numeric vector of the parameters to be optimized. Futher
   arguments can be specified as optional arguments in \code{rminuit2_par}
-  or in the environment passed using the \code{envir} argument. 
+  or in the environment passed using the \code{envir} argument.
 
   The function can
   also be an external pointer to a C++ function compiled using the
@@ -100,11 +100,11 @@ Performs function minimization using
 rosenbrock <- function(par, a, b) {
   x <- par[1]
   y <- par[2]
-  (a-x)^2 + b*(y-x^2)^2
+  (a - x)^2 + b * (y - x^2)^2
 }
 
 # minimize Rosenbrock Banana function, also setting parameters a, b
-fit.rc <- rminuit2_par(rosenbrock, c(x=0.7, y=1.2), a=1, b=100)
+fit.rc <- rminuit2_par(rosenbrock, c(x = 0.7, y = 1.2), a = 1, b = 100)
 
 # print fitted parameters
 fit.rc$par
@@ -112,27 +112,27 @@ fit.rc$par
 #
 # simulate model y = a*exp(-x/b)
 #
-x = seq(0, 1, length.out=31)
-y.func = function(x, par) par[1]*exp(-x/par[2])
+x = seq(0, 1, length.out = 31)
+y.func = function(x, par) par[1] * exp(-x / par[2])
 
 # simulate data with Gaussian errors for specific model
-model.par = c(a=2.3, b=0.47)
+model.par = c(a = 2.3, b = 0.47)
 y.err = 0.01
-y = y.func(x, par=model.par) + rnorm(sd=y.err, n=length(x))
+y = y.func(x, par = model.par) + rnorm(sd = y.err, n = length(x))
 
 # negative log-likelihood for model
 halfchisq = function(par, x, y, y.err) {
-  sum( (y - y.func(x, par))^2 / (2 * y.err^2) )
+  sum((y - y.func(x, par))^2 / (2 * y.err^2))
 }
 
 # fit model on data, ask to compute Minos errors too
-fit.rc = rminuit2_par(halfchisq, c(a=1, b=10), opt="hm", x=x, y=y, y.err=y.err)
+fit.rc = rminuit2_par(halfchisq, c(a = 1, b = 10), opt = "hm", x = x, y = y, y.err = y.err)
 
 # chi square / number of degrees of freedom
-cbind(chisq=2*fit.rc$fval, ndof=length(x) - length(model.par))
+cbind(chisq = 2 * fit.rc$fval, ndof = length(x) - length(model.par))
 
-cbind(model.value=model.par, value=fit.rc$par, error=fit.rc$err,
-      minos_pos=fit.rc$err_minos_pos, minos_neg=fit.rc$err_minos_neg)
+cbind(model.value = model.par, value = fit.rc$par, error = fit.rc$err,
+  minos_pos = fit.rc$err_minos_pos, minos_neg = fit.rc$err_minos_neg)
 
 # parameters' correlation matrix
 fit.rc$cor

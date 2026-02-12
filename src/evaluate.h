@@ -1,14 +1,6 @@
-//
-// infrastructure code to execute from C++ an R function, which can be:
-// - a regular R function
-// - a compiled function
-//
-// code taken from the source of the lbfgs R package
-// original comments follow
-//
-// Adapted from DEoptim (2.0.7) by Ardia et al to Rcpp/RcppArmadillo/Armadillo
-// Copyright (C) 2010  Dirk Eddelbuettel <edd@debian.org>
-// Adapted from RcppDE by Antonio Coppola, Harvard University, July 2014
+
+// Port of DEoptim (2.0.7) by Ardia et al to Rcpp/RcppArmadillo/Armadillo
+// Copyright (C) 2010 - 2022  Dirk Eddelbuettel <edd@debian.org>
 //
 // DEoptim is Copyright (C) 2009 David Ardia and Katharine Mullen
 
@@ -18,55 +10,61 @@
 #include <Rcpp.h>
 
 namespace Rcpp {
-  
-  class EvalBase {
-  public:
-    EvalBase() : neval(0) {};
-    virtual Rcpp::NumericVector eval(SEXP par) = 0;
-    unsigned long getNbEvals() { return neval; }
-  protected:
-    unsigned long int neval;
-  };
-  
-  class EvalStandard : public EvalBase {
-  public:
-    EvalStandard(SEXP fcall_, SEXP env_) : fcall(fcall_), env(env_) {}
-    Rcpp::NumericVector eval(SEXP par) {
-      neval++;
-      return defaultfun(par);
+    namespace DE {
+
+        class EvalBase {
+        public:
+            EvalBase() : neval(0) {};
+            virtual double eval(NumericVector par) = 0;
+            unsigned long getNbEvals() { return neval; }
+        protected:
+            unsigned long int neval;
+        };
+
+        class EvalStandard : public EvalBase {
+        public:
+            EvalStandard(SEXP fcall_, SEXP env_) : fcall(fcall_), env(env_) {}
+            double eval(NumericVector par) {
+                neval++;
+                return defaultfun(par);
+            }
+        private:
+            SEXP fcall, env;
+            double defaultfun(NumericVector par) {        // essentialy same as the old evaluate
+                Rcpp::Shield<SEXP> fn(::Rf_lang3(fcall, par, R_DotsSymbol));
+                Rcpp::Shield<SEXP> sexp_fvec(::Rf_eval(fn, env));
+                double f_result = REAL(sexp_fvec)[0];
+                if (ISNAN(f_result))
+                    ::Rf_error("NaN value of objective function! \nPerhaps adjust the bounds.");
+                return(f_result);
+            }
+        };
+
+        typedef double (*funcPtr)(NumericVector);
+
+        class EvalCompiled : public EvalBase {
+        public:
+            EvalCompiled(Rcpp::XPtr<funcPtr> xptr, SEXP env_) {
+                funptr = *(xptr);
+                env = env_;
+            };
+            EvalCompiled(SEXP xps, SEXP env_) {
+                Rcpp::XPtr<funcPtr> xptr(xps);
+                funptr = *(xptr);
+                env = env_;
+            };
+            double eval(NumericVector par) {
+                neval++;
+                return funptr(par); //, env);
+            }
+        private:
+            funcPtr funptr;
+            SEXP env;
+        };
+
     }
-  private:
-    SEXP fcall, env;
-    Rcpp::NumericVector defaultfun(SEXP par) {
-      SEXP fn = ::Rf_lang3(fcall, par, R_DotsSymbol);
-      SEXP sexp_fvec = ::Rf_eval(fn, env);
-      Rcpp::NumericVector f_result = (Rcpp::NumericVector) Rcpp::as<Rcpp::NumericVector>(sexp_fvec);
-      return(f_result);
-    }
-  };
-  
-  typedef Rcpp::NumericVector (*funcPtr)(SEXP, SEXP);
-  
-  class EvalCompiled : public EvalBase {
-  public:
-    EvalCompiled(Rcpp::XPtr<funcPtr> xptr, SEXP __env) {
-      funptr = *(xptr);
-      env = __env;
-    };
-    EvalCompiled(SEXP xps, SEXP __env) {
-      Rcpp::XPtr<funcPtr> xptr(xps);
-      funptr = *(xptr);
-      env = __env;
-    };
-    Rcpp::NumericVector eval(SEXP par) {
-      neval++;
-      return funptr(par, env);
-    }
-  private:
-    funcPtr funptr;
-    SEXP env;
-  };
-  
+
 }
+
 
 #endif

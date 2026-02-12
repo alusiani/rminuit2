@@ -6,7 +6,7 @@
 \usage{
 rminuit2(
   mll,
-  start = formals(mll),
+  start = NULL,
   err = NULL,
   lower = NULL,
   upper = NULL,
@@ -87,38 +87,38 @@ Performs function minimization using
 # Rosenbrock Banana function, to be minimized vs. x, y
 #
 rosenbrock <- function(x, y, a, b) {
-  (a-x)^2 + b*(y-x^2)^2
+  (a - x)^2 + b * (y - x^2)^2
 }
 
 # minimize Rosenbrock Banana function, also setting parameters a, b
-fit.rc <- rminuit2(rosenbrock, c(x=0.7, y=1.2), a=1, b=100)
+fit.rc <- rminuit2(rosenbrock, c(x = 0.7, y = 1.2), a = 1, b = 100)
 fit.rc$par
 
 #
 # simulate model y = a*exp(-x/b)
 #
-x = seq(0, 1, length.out=31)
-y.func = function(x, norm, tau) norm*exp(-x/tau)
+x = seq(0, 1, length.out = 31)
+y.func = function(x, norm, tau) norm * exp(-x / tau)
 
 # simulate data with Gaussian errors for specific model
-model.par = c(norm=2.3, tau=0.47)
+model.par = c(norm = 2.3, tau = 0.47)
 y.err = 0.01
-y = do.call(y.func, c(list(x), model.par)) + rnorm(sd=y.err, n=length(x))
+y = do.call(y.func, c(list(x), model.par)) + rnorm(sd = y.err, n = length(x))
 
 # negative log-likelihood for model
 halfchisq = function(norm, tau, x, y, y.err) {
-  sum( (y - y.func(x, norm, tau))^2 / (2 * y.err^2) )
+  sum((y - y.func(x, norm, tau))^2 / (2 * y.err^2))
 }
 
 # fit model on data, ask to compute Minos errors too
-fit.rc = rminuit2(halfchisq, c(norm=1, tau=10), opt="hm", x=x, y=y, y.err=y.err)
+fit.rc = rminuit2(halfchisq, c(norm = 1, tau = 10), opt = "hm", x = x, y = y, y.err = y.err)
 
 # chi square / number of degrees of freedom
-cbind(chisq=2*fit.rc$fval, ndof=length(x) - length(model.par))
+cbind(chisq = 2 * fit.rc$fval, ndof = length(x) - length(model.par))
 
 # fitted parameters and their estimated uncertainties
-cbind(model.value=model.par, value=fit.rc$par, error=fit.rc$err,
-      minos_pos=fit.rc$err_minos_pos, minos_neg=fit.rc$err_minos_neg)
+cbind(model.value = model.par, value = fit.rc$par, error = fit.rc$err,
+  minos_pos = fit.rc$err_minos_pos, minos_neg = fit.rc$err_minos_neg)
 
 # parameters' correlation matrix
 fit.rc$cor

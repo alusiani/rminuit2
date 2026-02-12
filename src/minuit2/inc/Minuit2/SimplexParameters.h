@@ -14,12 +14,14 @@
 
 #include "Minuit2/MnMatrix.h"
 
+#include <ROOT/RSpan.hxx>
+
 #include <vector>
 #include <utility>
 
 namespace ROOT {
 
-   namespace Minuit2 {
+namespace Minuit2 {
 
 /**
    class describing the simplex set of points (f(x), x )  which evolve during the minimization
@@ -29,36 +31,34 @@ namespace ROOT {
 class SimplexParameters {
 
 public:
+   SimplexParameters(std::span<const std::pair<double, MnAlgebraicVector>> simpl, unsigned int jh, unsigned int jl)
+      : fSimplexParameters(simpl.begin(), simpl.end()), fJHigh(jh), fJLow(jl)
+   {
+   }
 
-  SimplexParameters(const std::vector<std::pair<double, MnAlgebraicVector> >& simpl, unsigned int jh, unsigned int jl) : fSimplexParameters(simpl), fJHigh(jh), fJLow(jl) {}
+   void Update(double, const MnAlgebraicVector &);
 
-  ~SimplexParameters() {}
+   const std::vector<std::pair<double, MnAlgebraicVector>> &Simplex() const { return fSimplexParameters; }
 
-  void Update(double, const MnAlgebraicVector&);
+   const std::pair<double, MnAlgebraicVector> &operator()(unsigned int i) const
+   {
+      assert(i < fSimplexParameters.size());
+      return fSimplexParameters[i];
+   }
 
-  const std::vector<std::pair<double, MnAlgebraicVector> >& Simplex() const {
-    return fSimplexParameters;
-  }
-
-  const std::pair<double, MnAlgebraicVector>& operator()(unsigned int i) const {
-    assert(i < fSimplexParameters.size());
-    return fSimplexParameters[i];
-  }
-
-  unsigned int Jh() const {return fJHigh;}
-  unsigned int Jl() const {return fJLow;}
-  double Edm() const {return fSimplexParameters[Jh()].first - fSimplexParameters[Jl()].first;}
-  MnAlgebraicVector Dirin() const;
+   unsigned int Jh() const { return fJHigh; }
+   unsigned int Jl() const { return fJLow; }
+   double Edm() const { return fSimplexParameters[Jh()].first - fSimplexParameters[Jl()].first; }
+   MnAlgebraicVector Dirin() const;
 
 private:
-
-  std::vector<std::pair<double, MnAlgebraicVector> > fSimplexParameters;
-  unsigned int fJHigh;
-  unsigned int fJLow;
+   std::vector<std::pair<double, MnAlgebraicVector>> fSimplexParameters;
+   unsigned int fJHigh;
+   unsigned int fJLow;
 };
 
-  }  // namespace Minuit2
+} // namespace Minuit2
 
-}  // namespace ROOT
+} // namespace ROOT
 
-#endif  // ROOT_Minuit2_SimplexParameters
+#endif // ROOT_Minuit2_SimplexParameters

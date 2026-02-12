@@ -5,4 +5,4 @@
 
 \rm -rf inst
 \rm -f src/RcppExports.o src/rminuit2.o
-
+(cd src; make -f Makevars clean)

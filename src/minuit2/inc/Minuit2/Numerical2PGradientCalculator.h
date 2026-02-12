@@ -14,16 +14,12 @@
 
 #include "Minuit2/GradientCalculator.h"
 
-#include <vector>
-
 namespace ROOT {
 
-   namespace Minuit2 {
-
+namespace Minuit2 {
 
 class MnFcn;
 class MnUserTransformation;
-class MnMachinePrecision;
 class MnStrategy;
 
 /**
@@ -33,45 +29,23 @@ class MnStrategy;
 class Numerical2PGradientCalculator : public GradientCalculator {
 
 public:
+   Numerical2PGradientCalculator(const MnFcn &fcn, const MnUserTransformation &par, const MnStrategy &stra)
+      : fFcn(fcn), fTransformation(par), fStrategy(stra)
+   {
+   }
 
-  Numerical2PGradientCalculator(const MnFcn& fcn,
-                                const MnUserTransformation& par,
-                                const MnStrategy& stra) :
-    fFcn(fcn), fTransformation(par), fStrategy(stra) {}
+   FunctionGradient operator()(const MinimumParameters &) const override;
 
-  virtual ~Numerical2PGradientCalculator() {}
-
-  virtual FunctionGradient operator()(const MinimumParameters&) const;
-
-
-
-
-  virtual FunctionGradient operator()(const std::vector<double>& params) const;
-
-
-
-
-  virtual FunctionGradient operator()(const MinimumParameters&,
-                                      const FunctionGradient&) const;
-
-  const MnFcn& Fcn() const {return fFcn;}
-  const MnUserTransformation& Trafo() const {return fTransformation;}
-  const MnMachinePrecision& Precision() const;
-  const MnStrategy& Strategy() const {return fStrategy;}
-
-  unsigned int Ncycle() const;
-  double StepTolerance() const;
-  double GradTolerance() const;
+   FunctionGradient operator()(const MinimumParameters &, const FunctionGradient &) const override;
 
 private:
-
-  const MnFcn& fFcn;
-  const MnUserTransformation& fTransformation;
-  const MnStrategy& fStrategy;
+   const MnFcn &fFcn;
+   const MnUserTransformation &fTransformation;
+   const MnStrategy &fStrategy;
 };
 
-  }  // namespace Minuit2
+} // namespace Minuit2
 
-}  // namespace ROOT
+} // namespace ROOT
 
-#endif  // ROOT_Minuit2_Numerical2PGradientCalculator
+#endif // ROOT_Minuit2_Numerical2PGradientCalculator

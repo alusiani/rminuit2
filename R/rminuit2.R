@@ -60,38 +60,38 @@
 #' # Rosenbrock Banana function, to be minimized vs. x, y
 #' #
 #' rosenbrock <- function(x, y, a, b) {
-#'   (a-x)^2 + b*(y-x^2)^2
+#'   (a - x)^2 + b * (y - x^2)^2
 #' }
 #'
 #' # minimize Rosenbrock Banana function, also setting parameters a, b
-#' fit.rc <- rminuit2(rosenbrock, c(x=0.7, y=1.2), a=1, b=100)
+#' fit.rc <- rminuit2(rosenbrock, c(x = 0.7, y = 1.2), a = 1, b = 100)
 #' fit.rc$par
 #'
 #' #
 #' # simulate model y = a*exp(-x/b)
 #' #
-#' x = seq(0, 1, length.out=31)
-#' y.func = function(x, norm, tau) norm*exp(-x/tau)
+#' x = seq(0, 1, length.out = 31)
+#' y.func = function(x, norm, tau) norm * exp(-x / tau)
 #'
 #' # simulate data with Gaussian errors for specific model
-#' model.par = c(norm=2.3, tau=0.47)
+#' model.par = c(norm = 2.3, tau = 0.47)
 #' y.err = 0.01
-#' y = do.call(y.func, c(list(x), model.par)) + rnorm(sd=y.err, n=length(x))
+#' y = do.call(y.func, c(list(x), model.par)) + rnorm(sd = y.err, n = length(x))
 #'
 #' # negative log-likelihood for model
 #' halfchisq = function(norm, tau, x, y, y.err) {
-#'   sum( (y - y.func(x, norm, tau))^2 / (2 * y.err^2) )
+#'   sum((y - y.func(x, norm, tau))^2 / (2 * y.err^2))
 #' }
 #'
 #' # fit model on data, ask to compute Minos errors too
-#' fit.rc = rminuit2(halfchisq, c(norm=1, tau=10), opt="hm", x=x, y=y, y.err=y.err)
+#' fit.rc = rminuit2(halfchisq, c(norm = 1, tau = 10), opt = "hm", x = x, y = y, y.err = y.err)
 #'
 #' # chi square / number of degrees of freedom
-#' cbind(chisq=2*fit.rc$fval, ndof=length(x) - length(model.par))
+#' cbind(chisq = 2 * fit.rc$fval, ndof = length(x) - length(model.par))
 #'
 #' # fitted parameters and their estimated uncertainties
-#' cbind(model.value=model.par, value=fit.rc$par, error=fit.rc$err,
-#'       minos_pos=fit.rc$err_minos_pos, minos_neg=fit.rc$err_minos_neg)
+#' cbind(model.value = model.par, value = fit.rc$par, error = fit.rc$err,
+#'   minos_pos = fit.rc$err_minos_pos, minos_neg = fit.rc$err_minos_neg)
 #'
 #' # parameters' correlation matrix
 #' fit.rc$cor
@@ -108,51 +108,76 @@
 #'
 #' @export
 #'
-rminuit2 <- function(mll, start = formals(mll), err=NULL, lower=NULL, upper=NULL, fix=NULL, opt="h",
-                     maxcalls=0L, nsigma=1, ...) {
-  call <- match.call()
-  mll.args <- formals(mll)
+rminuit2 <- function(
+  mll, start = NULL, err = NULL, lower = NULL, upper = NULL, fix = NULL,
+  opt = "h", maxcalls = 0L, nsigma = 1, ...
+  ) {
+  mll = wrap_as_function(mll)
+  mll_arg_list = formals(mll)
+  mll_arg_names <- names(mll_arg_list)
+  mll_arg_names_nd = mll_arg_names[sapply(mll_arg_list, function(x) {identical(x, substitute())})]
 
-  if (is.numeric(start)) start = as.list(start)
-  if (!missing(start) && (!is.list(start) || is.null(names(start))))
-    stop("'start' must be a named list or a named numeric vector")
+  if (any(mll_arg_names == "..."))
+    stop("cannot use ... extra arguments, all arguments must be mentioned")
 
-  ##
-  ## evaluate expressions in start
-  ## catch eval.parent() errors to get meaningful error messages
-  ##
-  start <- tryCatch(start <- sapply(start, eval.parent),
-    error = function(e) {
-      for(el in start) {
-        rc = tryCatch(eval(el), error=function(e) {NA})
-        if (is.na(rc)) {
-          stop(paste0("mll function argument '", el, " cannot be evaluated, add it in start or extra args"))
-        }
-      }
-    })
-
-  start.names <- names(start)
-  not.init = setdiff(names(mll.args), start.names)
-  not.init = setdiff(not.init, names(list(...)))
-  not.init.flag = sapply(mll.args[not.init], is.symbol)
-  if (any(not.init.flag)) {
-    stop(paste0("\n  mll function arguments: ",
-                paste0("'", not.init[not.init.flag], "'", collapse=", "),
-                "\n  not initialized in either the mll function, in start, or in optional parameters"))
+  # Process 'start' based on the three scenarios
+  if (is.null(start)) {
+    start = setNames(numeric(length(mll_arg_names)), mll_arg_names)
+  } else if (is.character(start)) {
+    # character vector
+    start <- setNames(numeric(length(start)), start)
+  } else if (is.numeric(start)) {
+    # named numeric vector
+  } else {
+    stop("Argument 'start' must be a character vector, or a named numeric vector, or undefined")
   }
-  mll.args.match <- match(start.names, names(mll.args))
-  if (anyNA(mll.args.match))
+  par_names <- names(start)
+
+  mll_arg_names_ni = setdiff(mll_arg_names_nd, c(par_names, names(list(...))))
+  if (length(mll_arg_names_ni)>0) {
+    stop(
+      paste0("\n  mll function arguments: ",
+      paste0("'", mll_arg_names_ni, "'", collapse = ", "),
+      "\n  not present in either start or in optional parameters")
+    )
+  }
+  
+  mll_arg_names.match <- match(par_names, mll_arg_names)
+  if (anyNA(mll_arg_names.match))
     stop("some named arguments in 'start' are not arguments to the supplied mll function")
-  start <- start[order(mll.args.match)]
-  start.names <- names(start)
-  mll.par <- function(par, ...) {
-    par.list <- as.list(par)
-    names(par.list) <- start.names
-    par.list = c(par.list, list(...))
-    do.call("mll", par.list)
-  }
-  rc = rminuit2_par(mll.par, start=start, err=err, lower=lower, upper=upper, fix=fix, opt=opt,
-                    maxcalls=maxcalls, nsigma=nsigma, ...)
+  start <- start[order(mll_arg_names.match)]
+  par_names <- names(start)
+
+  # get name of mll function
+  fun_name <- deparse(substitute(mll))
+  cb_name <- paste0(fun_name, "_cb")
+
+  # 4. Construct the body of the callback
+  # We use substitute to replace parameters with par[i] directly in the code
+  mapping <- lapply(seq_along(par_names), function(i) {
+    substitute(par[i], list(i = i))
+  })
+  names(mapping) <- par_names
+
+  source_code <- body(mll)
+  cb_body <- do.call(substitute, list(source_code, mapping))
+
+  # 5. Define the callback function object
+  # It takes exactly one argument: 'par'
+  fun_cb <- function(par) {}
+  mll_arg_names_ns = setdiff(mll_arg_names, par_names)
+  formals(fun_cb) <- c(formals(fun_cb), mll_arg_list[mll_arg_names_ns])
+  body(fun_cb) <- cb_body
+  
+  # 6. Assign to the parent environment
+  # assign(cb_name, fun_cb, envir = parent.frame())
+  # message("Created vector callback: ", cb_name)
+
+  rc = rminuit2_common(
+    fun_cb, start = start, err = err,
+    lower = lower, upper = upper, fix = fix, opt = opt,
+    maxcalls = maxcalls, nsigma = nsigma, ...
+  )
   invisible(rc)
 }
 
@@ -166,7 +191,7 @@ rminuit2 <- function(mll, start = formals(mll), err=NULL, lower=NULL, upper=NULL
 #' @param mll The function to be minimized, which must have as first
 #'   argument a numeric vector of the parameters to be optimized. Futher
 #'   arguments can be specified as optional arguments in \code{rminuit2_par}
-#'   or in the environment passed using the \code{envir} argument. 
+#'   or in the environment passed using the \code{envir} argument.
 #'
 #'   The function can
 #'   also be an external pointer to a C++ function compiled using the
@@ -217,11 +242,11 @@ rminuit2 <- function(mll, start = formals(mll), err=NULL, lower=NULL, upper=NULL
 #' rosenbrock <- function(par, a, b) {
 #'   x <- par[1]
 #'   y <- par[2]
-#'   (a-x)^2 + b*(y-x^2)^2
+#'   (a - x)^2 + b * (y - x^2)^2
 #' }
 #'
 #' # minimize Rosenbrock Banana function, also setting parameters a, b
-#' fit.rc <- rminuit2_par(rosenbrock, c(x=0.7, y=1.2), a=1, b=100)
+#' fit.rc <- rminuit2_par(rosenbrock, c(x = 0.7, y = 1.2), a = 1, b = 100)
 #'
 #' # print fitted parameters
 #' fit.rc$par
@@ -229,44 +254,61 @@ rminuit2 <- function(mll, start = formals(mll), err=NULL, lower=NULL, upper=NULL
 #' #
 #' # simulate model y = a*exp(-x/b)
 #' #
-#' x = seq(0, 1, length.out=31)
-#' y.func = function(x, par) par[1]*exp(-x/par[2])
+#' x = seq(0, 1, length.out = 31)
+#' y.func = function(x, par) par[1] * exp(-x / par[2])
 #'
 #' # simulate data with Gaussian errors for specific model
-#' model.par = c(a=2.3, b=0.47)
+#' model.par = c(a = 2.3, b = 0.47)
 #' y.err = 0.01
-#' y = y.func(x, par=model.par) + rnorm(sd=y.err, n=length(x))
+#' y = y.func(x, par = model.par) + rnorm(sd = y.err, n = length(x))
 #'
 #' # negative log-likelihood for model
 #' halfchisq = function(par, x, y, y.err) {
-#'   sum( (y - y.func(x, par))^2 / (2 * y.err^2) )
+#'   sum((y - y.func(x, par))^2 / (2 * y.err^2))
 #' }
 #'
 #' # fit model on data, ask to compute Minos errors too
-#' fit.rc = rminuit2_par(halfchisq, c(a=1, b=10), opt="hm", x=x, y=y, y.err=y.err)
+#' fit.rc = rminuit2_par(halfchisq, c(a = 1, b = 10), opt = "hm", x = x, y = y, y.err = y.err)
 #'
 #' # chi square / number of degrees of freedom
-#' cbind(chisq=2*fit.rc$fval, ndof=length(x) - length(model.par))
+#' cbind(chisq = 2 * fit.rc$fval, ndof = length(x) - length(model.par))
 #'
-#' cbind(model.value=model.par, value=fit.rc$par, error=fit.rc$err,
-#'       minos_pos=fit.rc$err_minos_pos, minos_neg=fit.rc$err_minos_neg)
+#' cbind(model.value = model.par, value = fit.rc$par, error = fit.rc$err,
+#'   minos_pos = fit.rc$err_minos_pos, minos_neg = fit.rc$err_minos_neg)
 #'
 #' # parameters' correlation matrix
 #' fit.rc$cor
 #'
 #' @export
 #'
-rminuit2_par <- function(mll, start, err=NULL, lower=NULL, upper=NULL, fix=NULL, opt="h",
-                         maxcalls=0L, nsigma=1, ...) {
+rminuit2_par <- function(mll, start, err = NULL, lower = NULL, upper = NULL, fix = NULL, opt = "h",
+                         maxcalls = 0L, nsigma = 1, ...) {
+  # 2. Ensure start is a named numeric vector
+  if (!is.numeric(start) || is.null(names(start))) {
+    stop("'start' must be a named numeric vector (e.g., c(x=1, y=2))")
+  }
 
+  rc = rminuit2_common(
+    mll, start = start, err = err,
+    lower = lower, upper = upper, fix = fix, opt = opt,
+    maxcalls = maxcalls, nsigma = nsigma, ...
+  )
+  invisible(rc)
+}
+
+## call C++ code with prepared mll function
+rminuit2_common <- function(
+  mll, start, err, lower, upper, fix,
+  opt, maxcalls, nsigma, ...
+) {
   ## xtol <- .Machine$double.eps
 
   npar <- length(start)
-  if (is.null(err))   err = rep(0.1, npar)
+  if (is.null(err)) err = rep(0.1, npar)
   if (is.null(lower)) lower = rep(-Inf, npar)
   if (is.null(upper)) upper = rep(Inf, npar)
-  if (is.null(fix))   fix = rep(0L, npar)
-  if (is.null(opt))   opt = ""
+  if (is.null(fix)) fix = rep(0L, npar)
+  if (is.null(opt)) opt = ""
 
   opt = tolower(as.character(opt))
   if (length(opt) < 1) {
@@ -282,7 +324,7 @@ rminuit2_par <- function(mll, start, err=NULL, lower=NULL, upper=NULL, fix=NULL,
   }
 
   if (length(nsigma) < 1) {
-    maxcalls = 1
+    nsigma = 1
   } else if (length(maxcalls) > 1) {
     nsigma = nsigma[1]
   }
@@ -292,25 +334,25 @@ rminuit2_par <- function(mll, start, err=NULL, lower=NULL, upper=NULL, fix=NULL,
   start = setNames(as.numeric(start), par.names)
 
   if (!is.null(names(err))) {
-    if (any(! names(err) %in% par.names))
+    if (any(!names(err) %in% par.names))
       stop("some named arguments in 'err' are not parameters to be minimized in 'start'")
     err = setNames(ifelse(par.names %in% names(err), err, 0.1), par.names)
   }
 
   if (!is.null(names(lower))) {
-    if (any(! names(lower) %in% par.names))
+    if (any(!names(lower) %in% par.names))
       stop("some named arguments in 'lower' are not parameters to be minimized in 'start'")
     lower = setNames(ifelse(par.names %in% names(lower), lower, -Inf), par.names)
   }
 
   if (!is.null(names(upper))) {
-    if (any(! names(upper) %in% par.names))
+    if (any(!names(upper) %in% par.names))
       stop("some named arguments in 'upper' are not parameters to be minimized in 'start'")
     upper = setNames(ifelse(par.names %in% names(upper), upper, Inf), par.names)
   }
 
   if (!is.null(names(fix))) {
-    if (any(! names(fix) %in% par.names))
+    if (any(!names(fix) %in% par.names))
       stop("some named arguments in 'fix' are not parameters to be minimized in 'start'")
     fix = setNames(ifelse(par.names %in% names(fix), fix[par.names], 0), par.names)
   }
@@ -336,24 +378,18 @@ rminuit2_par <- function(mll, start, err=NULL, lower=NULL, upper=NULL, fix=NULL,
   nsigma = as.numeric(nsigma)
   nsigma = ifelse(is.na(nsigma), 1, abs(nsigma))
 
-  ##--- fix errors to zero for fixed parameters
-  err[which(fix!=0)] = 0
+  ## --- fix errors to zero for fixed parameters
+  err[which(fix != 0)] = 0
 
-  ##--- when minimizing a C++ function, extra args must be in envir argument
-  envir.list = list(...)
-  envir = new.env()
-  for (n in names(envir.list)) assign(n, envir.list[[n]], envir)
+  ## --- Call main C++ routine
+  env <- list2env(list(...))
+  rc <- rminuit2_cpp(mll, env, start, err, lower, upper, fix, opt, maxcalls, nsigma)
 
-  ##--- Call main C++ routine
-  rc <- rminuit2_cpp(mll, start, err, lower, upper, fix, opt, envir, maxcalls, nsigma)
-
-  rm(envir)
-
-  ##--- add names for output
+  ## --- add names for output
   names(rc$par) = par.names
   names(rc$err) = par.names
 
-  ##--- add names of Minos errors for output
+  ## --- add names of Minos errors for output
   if (!is.null(rc$err_minos_pos) && !is.null(rc$err_minos_neg)) {
     names(rc$err_minos_pos) = par.names
     names(rc$err_minos_neg) = par.names
@@ -361,18 +397,18 @@ rminuit2_par <- function(mll, start, err=NULL, lower=NULL, upper=NULL, fix=NULL,
     if (!rc$MinosErrorsValid) warning("One or more Minos errors are not valid")
   }
 
-  ##--- compute correlation matrix
+  ## --- compute correlation matrix
   rc$cor = cov2cor(rc$cov)
 
-  ##--- which parameters are free to float
-  which_nonfix_par = which(fix==0)
+  ## --- which parameters are free to float
+  which_nonfix_par = which(fix == 0)
 
   ##
   ## returned covariance is restricted to just the non-fixed parameters
   ## add zero elements for all fixed parameters
   ##
-  cov = matrix(0, nrow=npar, ncol=npar)
-  cov[which_nonfix_par, which_nonfix_par] = rc$cov 
+  cov = matrix(0, nrow = npar, ncol = npar)
+  cov[which_nonfix_par, which_nonfix_par] = rc$cov
   colnames(cov) = par.names
   rownames(cov) = par.names
   rc$cov = cov
@@ -382,12 +418,12 @@ rminuit2_par <- function(mll, start, err=NULL, lower=NULL, upper=NULL, fix=NULL,
   ## the correlation of the fit results for the floating parameters
   ##
   cor = diag(rep(1, npar))
-  cor[which_nonfix_par, which_nonfix_par] = rc$cor 
+  cor[which_nonfix_par, which_nonfix_par] = rc$cor
   colnames(cor) = par.names
   rownames(cor) = par.names
   rc$cor = cor
 
-  ##--- compute overall fit and covariance valid flag
+  ## --- compute overall fit and covariance valid flag
   rc$allOK = all(
     rc$IsValid,
     rc$HasValidParameters,
@@ -414,11 +450,6 @@ rminuit2_par <- function(mll, start, err=NULL, lower=NULL, upper=NULL, fix=NULL,
 
   invisible(rc)
 }
-
-##
-## check if error return code
-##
-is.error <- function(x) inherits(x, "try-error")
 
 ##
 ## copied from package pryr
@@ -457,9 +488,9 @@ all_named <- function(x) {
 ##
 make_call <- function (f, ..., .args = list())
 {
-    if (is.character(f))
-        f <- as.name(f)
-    as.call(c(f, ..., .args))
+  if (is.character(f))
+      f <- as.name(f)
+  as.call(c(f, ..., .args))
 }
 
 ##
@@ -511,7 +542,7 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
   }
 
   ##--- prepare fit parameters as text for args of a function, in a list
-  par.txt = mapply(function(n, v) paste(n, "=", v), names(par), par, SIMPLIFY=FALSE)
+  par.txt = mapply(function(n, v) { paste(n, "=", v) }, names(par), par, SIMPLIFY=FALSE )
 
   extra = list(...)
   if (any(names(extra) %in% names(par))) {
@@ -529,7 +560,7 @@ rminuit2_make_gaussian_mll <- function(formula, par, data=NULL, weights=NULL, er
 
   ##--- prepare list with all par and extra, with each par in one argument
   par.extra.txt = c(par.txt, extra.txt)
-  
+
   ##
   ## assemble body of mll function using formula, weights and errors expressions
   ##
@@ -773,7 +804,7 @@ rminuit2_expr = function(formula, start, data=NULL, weights=NULL, errors=NULL,
     
     stop("bad 'lh', must be one of: 'Gaussian' (more will be added)")
   )
-  
+
   rc.fit = rminuit2_par(mll=rc$fun_mll, start=start, err=err, lower=lower, upper=upper, fix=fix, opt=opt,
                         maxcalls=maxcalls, nsigma=nsigma, ...)
 
@@ -846,7 +877,7 @@ rminuit2_expr = function(formula, start, data=NULL, weights=NULL, errors=NULL,
 
   ##--- number of degrees of freedom
   ndof = nobs - length(start) + sum(fix != 0)
-  
+
   invisible(c(
     rc.fit,
     chisq = chisq,
@@ -857,4 +888,64 @@ rminuit2_expr = function(formula, start, data=NULL, weights=NULL, errors=NULL,
     fun = rc$fun,
     fun_par = rc$fun_par
   ))
+}
+
+# get function args or expression variables
+get_arg_names = function(fun) {
+  if (is.function(fun)) {
+    # Extract formal argument names, excluding '...'
+    f_names <- names(formals(fun))
+    return(f_names[f_names != "..."])
+  } else {
+    # Extract all variables from the expression/call
+    # e.g., quote(x^2 + a) -> c("x", "a")
+    return(all.vars(fun))
+  }
+}
+
+# get function args or expression variables as formals
+get_arg_list = function(fun) {
+  sfun = substitute(fun)
+  if (is.function(sfun)) {
+    return(formals(sfun))
+  } else {
+    vnames = all.vars(sfun)
+    arglist = structure(
+      rep(list(substitute()), length(vnames)), 
+      names = vnames
+    )
+    return(arglist)
+  }
+}
+
+# return a function in case expression is in argument
+wrap_as_function <- function(input) {
+  # Capture the input without evaluating it
+  # This prevents the "object not found" error
+  expr <- substitute(input)
+  
+  # 1. If the user passed a function name (like 'sin'), 
+  # we need to check if the evaluated input is a function.
+  # We use tryCatch or is.function on the evaluated object.
+  input_eval <- try(input, silent = TRUE)
+  if (is.function(input_eval)) {
+    return(input_eval)
+  }
+
+  # 2. Treat as expression
+  vars <- all.vars(expr)
+
+  # 3. Create the "missing" symbol pairlist for the arguments
+  arg_list <- setNames(rep(list(substitute()), length(vars)), vars)
+  
+  # 4. Construct the new function
+  res_fun <- function() {}
+  formals(res_fun) <- as.pairlist(arg_list)
+  body(res_fun) <- expr
+  
+  # Set the environment so the function can find other 
+  # objects from where it was created
+  environment(res_fun) <- parent.frame()
+  
+  return(res_fun)
 }
