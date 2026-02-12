@@ -3,5 +3,6 @@
 # cleanup
 #
 
-/bin/rm -rf inst
+\rm -rf inst
+\rm -f src/RcppExports.o src/rminuit2.o
 
