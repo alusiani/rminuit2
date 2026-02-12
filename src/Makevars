@@ -39,8 +39,11 @@ all: $(SHLIB)
 
 $(SHLIB): $(MINUIT_LIB) $(MATH_LIB) $(GLUE_OBJECTS)
 
-$(MINUIT_LIB) $(MATH_LIB):
-	mkdir -p $(MINUIT_DIR)/build
+rminuit2.o $(MINUIT_LIB) $(MATH_LIB): prepare
+
+.PHONY: prepare
+prepare:
+	mkdir -p $(MINUIT_DIR)/build ; \
 	cd $(MINUIT_DIR)/build ; \
 	cmake .. \
     -Dminuit2_standalone=ON \
