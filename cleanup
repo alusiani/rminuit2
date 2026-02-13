@@ -3,6 +3,5 @@
 # cleanup for CRAN package preparation
 #
 \rm -f .gitattributes .gitignore
-\rm -rf src/minuit2/math/minuit2/test/ src/minuit2/math/mathcore/test/
 
-  
+
