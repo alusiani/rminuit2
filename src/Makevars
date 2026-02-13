@@ -1,3 +1,15 @@
+# Detect the number of processors
+NPROCS := 1
+OS := $(shell uname -s)
+
+ifeq ($(OS),Linux)
+  NPROCS := $(shell nproc)
+endif
+
+ifeq ($(OS),Darwin) # macOS
+  NPROCS := $(shell sysctl -n hw.ncpu)
+endif
+
 CHECK_CXX := $(firstword $(CXX))
 
 # check if the compiler exists and supports -std=c++20
@@ -31,7 +43,7 @@ PKG_LIBS = -L$(MINUIT_DIR)/dist/lib -Wl,-Bstatic -lMinuit2 -lMinuit2Math -Wl,-Bd
 MINUIT_LIB = $(MINUIT_DIR)/dist/lib/libMinuit2.a
 MATH_LIB = $(MINUIT_DIR)/dist/lib/libMinuit2Math.a
 
-# 6. Dependency Files
+# Dependency Files
 ALL_OBJS = $(GLUE_OBJECTS)
 DEPS = $(ALL_OBJS:.o=.d)
 
@@ -58,7 +70,7 @@ prepare:
     -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
 		-DCMAKE_CXX_FLAGS="-include ${PWD}/assert_throw.h" \
 		; \
-	make ; \
+	make -j$(NPROCS) ; \
 	make install
 
 rminuit2.o: %.o: %.cpp
