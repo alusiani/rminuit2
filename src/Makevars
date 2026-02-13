@@ -52,7 +52,7 @@ prepare:
 	cd $(MINUIT_DIR)/build ; \
 	cmake .. \
     -Dminuit2_standalone=ON \
-    -Dminuit2_omp=OFF \
+    -Dminuit2_omp=ON \
     -DCMAKE_INSTALL_PREFIX="../dist" \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
