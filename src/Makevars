@@ -89,5 +89,5 @@ clean:
 	@\rm -rf \
 	  $(GLUE_OBJECTS) \
 		$(DEPS) $(MINUIT_LIB) $(MATH_LIB) $(SHLIB) \
-		a-RcppExports.d a-rminuit2.d \
+		rminuit2.so a-RcppExports.d a-rminuit2.d \
 		$(MINUIT_DIR)/build $(MINUIT_DIR)/dist
