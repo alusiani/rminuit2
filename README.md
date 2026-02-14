@@ -1,8 +1,35 @@
-## rminuit2, numerical multidimensional function minimization with Minuit2
+# rminuit2, numerical multidimensional minimization with Minuit2
+
+Use [Minuit2](https://root.cern.ch/doc/master/Minuit2Page.html)
+(part of [Root](https://root.cern.ch/)) to
+find the minimum of a function, computing also uncertainties and
+covariance of the fitted parameters.
+
+Works on Linux (tested on Fedora 43). Requires `cmake` for compilation.
+Updated to Minuit2 of Root v6-36-08.
+
+## install
+
+Install from github.
+
+In R:
+```R
+## install.packages("pak")
+pak::pkg_install"alusiani/rminuit2")
+```
+
+In shell:
+```sh
+Rscript -e "pak::pkg_install(\"alusiani/rminuit2\")"
+```
+
+For usage, please refer to the documentation (`?rminuit2`, `?rminuit2_par`, `?rminuit_expr`).
+
+## more information
 
 R package with an interface for using the
 [Minuit2](https://root.cern.ch/doc/master/Minuit2Page.html)
-minimization library, which is included in this package.
+minimization library, which is included.
 
 Minuit2 is a library to perform robust numerical multidimensional
 minimization. It effectively finds the local minimum of
@@ -40,7 +67,7 @@ effective in minimizing functions with many parameters with large
 correlations and different scales. Furthermore, it devotes special
 care in numerically estimating the parameter's uncertainties.
 
-### Minimization of a C++ function (not yet implemented)
+## Minimization of a C++ function (not yet implemented)
 
 Relying on the packages [Rcpp](https://github.com/RcppCore/Rcpp) and
 [inline](https://CRAN.R-project.org/package=inline) and following
@@ -48,7 +75,7 @@ the examples n the packages [lbfgs](https://CRAN.R-project.org/package=lbfgs) an
 [RcppDE](http://cran.r-project.org/web/packages/RcppDE/index.html), it is possible
 to define the function to be minimized in C++.
 
-### Non-linear least-square fitting with maximum-likelihood fit
+## Non-linear least-square fitting with maximum-likelihood fit
 
 This package also includes the ability to fit the parameters of a
 model that aims to describe a set of experimental measurements.  The
@@ -59,27 +86,11 @@ distribution is modelled as Gaussian and a maximum-likelihood fit is
 performed. Errors that depend on the fit parameters can be included
 in the model.
 
-### Installation and Usage
-
-Download the package tarball and build using R commands, or alternatively install directly from Github using the [remotes](https://CRAN.R-project.org/package=remotes) package. The R commands are:
-
-```
-## install.packages("remotes")
-remotes::install_github("alusiani/rminuit2")
-```
-
-The package has been tested so far only on Linux, and is not prepared
-for MS Windows. Adaptation to MS Windows is not trivial since Minuit2
-is presently compiled with autotool/automake Makefiles.
-Contributors are welcome for adaptations for OSs other than Linux.
-
-For usage, please refer to the documentation.
-
-### Dependencies
+## Dependencies
 
 - [Rcpp](https://github.com/RcppCore/Rcpp) for seamless R and C++ integration
 
-### Acknowledgements
+## Acknowledgements
 
 This package relies on the infrastracture for interfacing C++ offered
 by [Rcpp](https://github.com/RcppCore/Rcpp).
@@ -87,19 +98,21 @@ by [Rcpp](https://github.com/RcppCore/Rcpp).
 To offer the possibility to write in C++ the function to be
 minimized, we used code and examples from the packages:
 
-* Antonio Coppola, Brandon Stewart, Naoaki Okazaki, [lbfgs: Efficient L-BFGS and OWL-QN Optimization in R](https://CRAN.R-project.org/package=lbfgs);
+* Antonio Coppola, Brandon Stewart, Naoaki Okazaki,
+[lbfgs: Efficient L-BFGS and OWL-QN Optimization in R](https://CRAN.R-project.org/package=lbfgs);
 
-* Dirk Eddelbuettel, [RcppDE: Global optimization by Differential Evolution in C++](http://cran.r-project.org/web/packages/RcppDE/index.html).
+* Dirk Eddelbuettel,
+[RcppDE: Global optimization by Differential Evolution in C++](http://cran.r-project.org/web/packages/RcppDE/index.html).
 
-### Authors
+## Authors
 
 Alberto Lusiani
 
-### License
+## License
 
 LGPL (>= 2)
 
-### Disclaimer
+## Disclaimer
 
 The software is provided "as is", without warranty of any kind, express or
 implied, including but not limited to the warranties of merchantability,
