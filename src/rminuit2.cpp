@@ -22,12 +22,6 @@
   #include <omp.h>
 #endif
 
-// Include the Math Factory headers
-#include "Math/Minimizer.h"
-#include "Math/Factory.h"
-#include "Math/Functor.h"
-#include "Minuit2/Minuit2Minimizer.h"
-
 #include "Minuit2/FunctionMinimum.h"
 #include "Minuit2/MnUserParameters.h"
 #include "Minuit2/MnUserParameterState.h"
@@ -94,7 +88,8 @@ List rminuit2_cpp(
 
   MnUserParameters upar;
   for(size_t i = 0; i < npar; i++) {
-    std::string name = (par_names.size() > i) ? as<std::string>(par_names[i]) : "p" + std::to_string(i);
+    bool has_name = static_cast<size_t>(par_names.size()) > i;
+    std::string name = has_name ? as<std::string>(par_names[i]) : "p" + std::to_string(i);
     upar.Add(name, par[i], err[i]);
     
     if (lower[i] != R_NegInf) upar.SetLowerLimit(i, lower[i]);
@@ -229,135 +224,6 @@ List rminuit2_cpp(
     rc["err_minos_neg"] = wrap(minos_neg_err);
     rc["err_minos_pos_valid"] = wrap(minos_pos_valid);
     rc["err_minos_neg_valid"] = wrap(minos_neg_valid);
-  }
-
-  return rc;
-}
-
-//
-// tentative high level minimizer code (not used yet)
-//
-List rminuit2_hl_cpp(
-  SEXP fn,
-  SEXP env,
-  NumericVector par,
-  NumericVector err,
-  NumericVector lower,
-  NumericVector upper,
-  IntegerVector fix,
-  StringVector opt,
-  IntegerVector maxcalls,
-  NumericVector nsigma
-) {
-  std::string sopt = as<std::string>(opt[0]);
-  int imaxcalls = maxcalls[0];
-  double dnsigma = nsigma[0];
-  size_t npar = par.size();
-  size_t npar_nonfixed = npar;
-  StringVector par_names = par.names();
-  bool use_threads = false;
-
-  FcnRcppAdapter fFcn(fn, env);
-
-  // 1. Initialize using the direct class from your header
-  auto min = std::make_unique<ROOT::Minuit2::Minuit2Minimizer>(ROOT::Minuit2::kMigrad);
-
-  // 2. Define lambda and Functor to bridge Rcpp to ROOT::Math
-  auto fcn_lambda = [&](const double * x) {
-    std::vector<double> v_par(x, x + npar);
-    return fFcn(v_par);
-  };
-
-  ROOT::Math::Functor wfunc(fcn_lambda, (unsigned int)npar);
-  min->SetFunction(wfunc);
-  min->SetMaxFunctionCalls(imaxcalls);
-
-  // 3. Set variables using the interface in Minuit2Minimizer.h
-  for(size_t i = 0; i < npar; i++) {
-    std::string name = (par_names.size() > i) ? as<std::string>(par_names[i]) : "p" + std::to_string(i);
-    
-    if (fix[i] != 0) {
-      min->SetFixedVariable(i, name, par[i]);
-      npar_nonfixed--;
-    } else {
-      double low = (lower[i] == R_NegInf) ? -std::numeric_limits<double>::infinity() : lower[i];
-      double up  = (upper[i] == R_PosInf) ?  std::numeric_limits<double>::infinity() : upper[i];
-
-      if (std::isinf(low) && std::isinf(up)) {
-        min->SetVariable(i, name, par[i], err[i]);
-      } else {
-        min->SetLimitedVariable(i, name, par[i], err[i], low, up);
-      }
-    }
-  }
-
-  #ifdef _OPENMP
-    int curr_threads = omp_get_max_threads();
-    if (!use_threads) omp_set_num_threads(1);
-  #endif
-
-  // 4. Run Minimization based on options
-  if (sopt.find('0') != std::string::npos) min->SetStrategy(0);
-  else if (sopt.find('2') != std::string::npos) min->SetStrategy(2);
-  else min->SetStrategy(1);
-
-  bool success = min->Minimize();
-  bool migrad_first_failed = !success;
-
-  // 5. Run Hesse/Minos using public methods
-  if (sopt.find('h') != std::string::npos) {
-    min->Hesse();
-  }
-
-  std::vector<double> minos_pos_err, minos_neg_err;
-  if (sopt.find('m') != std::string::npos) {
-    // Note: SetErrorDef usually handled via the FCN or global settings
-    for(unsigned int i = 0; i < npar; i++) {
-      double el = 0, eu = 0;
-      if (fix[i]) {
-        minos_pos_err.push_back(0); minos_neg_err.push_back(0);
-      } else {
-        min->GetMinosError(i, el, eu);
-        minos_pos_err.push_back(eu);
-        minos_neg_err.push_back(el);
-      }
-    }
-  }
-
-  // 6. Extract Covariance Matrix using public GetCovMatrix
-  NumericMatrix par_cov(npar, npar);
-  std::vector<double> cov_array(npar * npar);
-  if (min->GetCovMatrix(cov_array.data())) {
-    for(size_t i = 0; i < npar; i++) {
-      for(size_t j = 0; j < npar; j++) {
-        par_cov(i, j) = cov_array[i * npar + j];
-      }
-    }
-  }
-
-  // 7. Access final state results via State()
-  const ROOT::Minuit2::MnUserParameterState& state = min->State();
-
-  #ifdef _OPENMP
-    if (!use_threads) omp_set_num_threads(curr_threads);
-  #endif
-
-  List rc = List::create(
-    Named("par") = NumericVector(min->X(), min->X() + npar),
-    Named("err") = NumericVector(min->Errors(), min->Errors() + npar),
-    Named("cov") = par_cov,
-    Named("fval") = min->MinValue(),
-    Named("Edm") = min->Edm(),
-    Named("Status") = min->Status(),
-    Named("IsValid") = state.IsValid(),
-    Named("HasValidCovariance") = state.HasCovariance(),
-    Named("CovMatrixStatus") = min->CovMatrixStatus()
-  );
-
-  if (sopt.find('m') != std::string::npos) {
-    rc["err_minos_pos"] = wrap(minos_pos_err);
-    rc["err_minos_neg"] = wrap(minos_neg_err);
-    rc["MinosStatus"] = min->MinosStatus();
   }
 
   return rc;
