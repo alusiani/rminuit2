@@ -45,18 +45,10 @@ using namespace ROOT::Minuit2;
 
 class FcnRcppAdapter : public ROOT::Minuit2::FCNBase {
 public:
-  // Store by value: Rcpp::Function is just a wrapper around a SEXP.
-  // Copying it by value is cheap and handles internal SEXP protection.
   FcnRcppAdapter(SEXP fn, SEXP env) :
     fEval(fn, env) {}
 
-  // Shallow copy constructor: Let Rcpp handles the 'fn' and 'evaluator' logic.
-  FcnRcppAdapter(const FcnRcppAdapter& other) : 
-    fEval(other.fEval), fErrorDef(other.fErrorDef) {}
-
-  virtual ~FcnRcppAdapter() {}
-
-  double operator()(const std::vector<double>& par) const {
+  double operator()(std::vector<double> const &par) const override {
     // Basic R-check without extra overhead
     if (fEval.getNbEvals() % 500 == 0) R_CheckUserInterrupt();
 
@@ -69,12 +61,13 @@ public:
   }
 
   double Up() const { return fErrorDef; }
-  void SetErrorDef(double errorDef) { fErrorDef = errorDef; }
+  void SetErrorDef(double errorDef) override { fErrorDef = errorDef; }
 
 private:
   // fEval is an instance of EvalStandard defined in evaluate.h
   mutable Rcpp::DE::EvalStandard fEval;
-  double fErrorDef = 1.0;
+  // default 1 sigma for minus log likelihood
+  double fErrorDef = 0.5;
 };
 
 // [[Rcpp::export]]
@@ -176,7 +169,8 @@ List rminuit2_cpp(
   std::vector<double> minos_pos_err, minos_neg_err;
   std::vector<bool> minos_pos_valid, minos_neg_valid;
   if (sopt.find('m') != std::string::npos && fminp) {
-    fFcn.SetErrorDef(dnsigma * dnsigma * fFcn.Up());
+    // set for Minos dsigma for minus log likelihood
+    fFcn.SetErrorDef(0.5 * dnsigma * dnsigma);
     MnMinos Minos(fFcn, *fminp);
     
     for(size_t i = 0; i < npar; i++) {
