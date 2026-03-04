@@ -63,11 +63,11 @@ prepare:
 	mkdir -p $(MINUIT_DIR)/build ; \
 	cd $(MINUIT_DIR)/build ; \
 	cmake .. \
-    -Dminuit2_standalone=ON \
-    -Dminuit2_omp=ON \
-    -DCMAKE_INSTALL_PREFIX="../dist" \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+		-Dminuit2_standalone=ON \
+		-Dminuit2_omp=ON \
+		-DCMAKE_INSTALL_PREFIX="../dist" \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_POSITION_INDEPENDENT_CODE=ON \
 		-DCMAKE_CXX_FLAGS="-include ${PWD}/assert_throw.h" \
 		; \
 	make -j$(NPROCS) ; \
@@ -87,7 +87,7 @@ rminuit2.o: %.o: %.cpp
 # Cleanup
 clean:
 	@\rm -rf \
-	  $(GLUE_OBJECTS) \
+		$(GLUE_OBJECTS) \
 		$(DEPS) $(MINUIT_LIB) $(MATH_LIB) $(SHLIB) \
 		rminuit2.so a-RcppExports.d a-rminuit2.d \
 		$(MINUIT_DIR)/build $(MINUIT_DIR)/dist

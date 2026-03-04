@@ -84,7 +84,9 @@ List rminuit2_cpp(
   size_t npar_nonfixed = npar;
   StringVector par_names = par.names();
   // set false, in future may set true when minimizing C++ function
-  bool use_threads = false;
+  #ifdef _OPENMP
+    bool use_threads = false;
+  #endif
 
   MnUserParameters upar;
   for(size_t i = 0; i < npar; i++) {
@@ -101,7 +103,7 @@ List rminuit2_cpp(
     }
   }
 
-  // Initialize adapter with the provided function and dimension
+  // Initialize adapter with the provided function and its env
   FcnRcppAdapter fFcn(fn, env);
 
   std::unique_ptr<FunctionMinimum> fminp;
