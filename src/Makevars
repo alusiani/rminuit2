@@ -12,16 +12,16 @@ endif
 
 CHECK_CXX := $(firstword $(CXX))
 
-# check if the compiler exists and supports -std=c++20
-HAS_CPP20 := $(shell if $(CHECK_CXX) -v --help 2>/dev/null | grep -q "std=c++20"; then echo "yes"; fi)
+# Check if the compiler supports -std=c++20 by attempting a dry-run compilation.
+# The original -v --help approach piped stderr to grep but redirected stderr to
+# /dev/null, so grep received nothing and the check always failed.
+HAS_CPP20 := $(shell $(CHECK_CXX) -std=c++20 -x c++ /dev/null -fsyntax-only 2>/dev/null && echo "yes")
 
-# only define CXX20 if the check passed. so far not working
 ifeq ($(HAS_CPP20),yes)
   CXX20 := $(CHECK_CXX)
   CXX20STD := -std=c++20
   CXX20PICFLAGS := -fPIC
   CXX20FLAGS := -g -O2 $(CXX20PICFLAGS)
-  # Export to make sure R's sub-processes see it
   export CXX20
   export CXX20STD
 endif
@@ -30,18 +30,18 @@ endif
 MINUIT_DIR = minuit2/math/minuit2
 MINUIT_INC = $(MINUIT_DIR)/dist/include/Minuit2
 
+# Static library paths (used both as build prerequisites and for portable linking)
+MINUIT_LIB = $(MINUIT_DIR)/dist/lib/libMinuit2.a
+MATH_LIB   = $(MINUIT_DIR)/dist/lib/libMinuit2Math.a
+
 # R Glue Code
 GLUE_OBJECTS = rminuit2.o RcppExports.o
 
-PKG_CPPFLAGS = \
-  -I$(MINUIT_INC) \
-  $(SHLIB_OPENMP_CXXFLAGS) -MMD -MP -MF $*.d
+PKG_CPPFLAGS = -I$(MINUIT_INC)
 
-PKG_LIBS = -L$(MINUIT_DIR)/dist/lib -Wl,-Bstatic -lMinuit2 -lMinuit2Math -Wl,-Bdynamic
+# PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS)
 
-# Define the library location
-MINUIT_LIB = $(MINUIT_DIR)/dist/lib/libMinuit2.a
-MATH_LIB = $(MINUIT_DIR)/dist/lib/libMinuit2Math.a
+PKG_LIBS = $(MINUIT_LIB) $(MATH_LIB)
 
 # Dependency Files
 ALL_OBJS = $(GLUE_OBJECTS)
@@ -73,16 +73,15 @@ prepare:
 	make -j$(NPROCS) ; \
 	make install
 
+# specialized rules
+# SHLIB_OPENMP_CXXFLAGS -- ensure OPENMP
+# -MMD -MP -MF $*.d -- dependency file generation;
+
 rminuit2.o: %.o: %.cpp
-	$(CXX) $(ALL_CPPFLAGS) $(ALL_CXXFLAGS) -I. -c $< -o $@
+	$(CXX) $(ALL_CPPFLAGS) $(ALL_CXXFLAGS) $(SHLIB_OPENMP_CXXFLAGS) -MMD -MP -MF $*.d -I. -c $< -o $@
 
-# Generic rule for C++ files
 %.o: %.cxx
-	$(CXX) $(ALL_CPPFLAGS) $(ALL_CXXFLAGS) -c $< -o $@
-
-# R / Rcpp does that by default apparently
-# %.o: %.cpp
-# 	$(CXX) $(ALL_CPPFLAGS) $(ALL_CXXFLAGS) -c $< -o $@
+	$(CXX) $(ALL_CPPFLAGS) $(ALL_CXXFLAGS) $(SHLIB_OPENMP_CXXFLAGS) -MMD -MP -MF $*.d -c $< -o $@
 
 # Cleanup
 clean:
