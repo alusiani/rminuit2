@@ -1,7 +1,7 @@
 Package: rminuit2
 Title: Function Minimization with Minuit2
-Version: 0.0.2
-Date: 2026-02-10
+Version: 0.2.1
+Date: 2026-03-08
 Authors@R: person("Alberto", "Lusiani", email = "alusiani@gmail.com", role = c("aut", "cre"))
 Description: R interface for Minuit2 function minimization library (https://root.cern.ch/doc/master/Minuit2Page.html), which is included in the package.
 License: LGPL (>= 2)
